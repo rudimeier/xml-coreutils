@@ -1,0 +1,39 @@
+\" t
+.TH XML-ECHO 1 "xml-coreutils" "Version @VERSION@" ""
+.SH NAME
+xml-echo \- generate an XML file on standard output
+.SH SYNOPSIS
+.HP
+.B xml-echo
+[OPTION] [STRING]...
+.SH DESCRIPTION
+.PP
+.B xml-echo
+wraps well formed XML around one or more STRINGs and writes the result
+to standard output.
+.PP
+The -e option enables interpretation of backslash escape characters and
+XML path instructions.
+.SH EXAMPLES
+.PP
+xml-echo -e "[greeting@mood=jovial]hello \\c[name]Laird"
+.IP
+
+.SH SOURCE
+.PP
+The source code for the latest version of this program is available at the
+following locations: 
+.PP
+.na
+http://www.lbreyer.com/gpl.html
+.br
+http://dbacl.sourceforge.net
+.ad
+.SH BUGS
+.PP
+.SH AUTHOR
+.PP
+Laird A. Breyer <laird@lbreyer.com>
+.SH SEE ALSO
+.PP
+.BR xml-coreutils (7)

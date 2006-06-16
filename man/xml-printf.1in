@@ -1,0 +1,37 @@
+\" t
+.TH XML-PRINTF 1 "xml-coreutils" "Version @VERSION@" ""
+.SH NAME
+xml-printf \- format and print XML data on standard output
+.SH SYNOPSIS
+.HP
+.B xml-printf
+[OPTION] FORMAT [[SOURCE]:XPATH]...
+.SH DESCRIPTION
+.PP
+.B xml-printf
+prints the string value of each XPATH according to FORMAT. 
+.PP
+Each SOURCE file is optional, and defaults to standard input. 
+Each XPATH represents an XML node which must exist in the input.
+.SH EXAMPLES
+.PP
+.IP
+
+.SH SOURCE
+.PP
+The source code for the latest version of this program is available at the
+following locations: 
+.PP
+.na
+http://www.lbreyer.com/gpl.html
+.br
+http://dbacl.sourceforge.net
+.ad
+.SH BUGS
+.PP
+.SH AUTHOR
+.PP
+Laird A. Breyer <laird@lbreyer.com>
+.SH SEE ALSO
+.PP
+.BR xml-coreutils (7)

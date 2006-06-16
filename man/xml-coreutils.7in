@@ -1,0 +1,34 @@
+\" t
+.TH XML-COREUTILS 7 "xml-coreutils" "Version @VERSION@" ""
+.SH NAME
+xml-coreutils \- shell commands for XML processing
+.SH DESCRIPTION
+.PP
+.B xml-coreutils
+is a collection of shell commands similar to the traditional
+.B coreutils
+shipped on many Unix systems.
+.PP
+.SH SOURCE
+.PP
+The source code for the latest version of xml-coreutils is available at the
+following locations: 
+.PP
+.na
+http://www.lbreyer.com/gpl.html
+.br
+http://dbacl.sourceforge.net
+.ad
+.SH BUGS
+.PP
+The xml-coreutils collection is still incomplete, but already usable for limited
+tasks. 
+.SH AUTHOR
+.PP
+Laird A. Breyer <laird@lbreyer.com>
+.SH SEE ALSO
+.PP
+.BR xml-cat (1)
+.BR xml-echo (1)
+.BR xml-printf (1)
+.BR xml-less (1)

@@ -1,0 +1,199 @@
+DESIGN REQUIREMENTS FOR XML-COREUTILS
+
+This document is an informal list of design requirements for the
+xml-coreutils tools. The initial ideas are introduced in the essay "Is
+the Unix shell ready for XML?" (see the file unix_xml.html). Since
+there is no room in the essay to discuss all the little issues which
+might arise over time, it makes sense to list them here. Also, the
+essay will become outdated over time, while the explanations
+listed here should stay current. 
+
+In particular, none of the requirements are set in stone. They can be
+changed if sufficiently good reasons are found, but they should
+reflect the current state or aims of the source code.
+
+Note that the emphasis here is on design decisions intended to keep
+the xml-corutils tools coherent. The actual implementation details
+aren't necessarily discussed.
+
+PRELIMINARIES
+
+The xml-coreutils are intended to blend naturally with the normal
+Unix userland shell commands. The intent is to make sure that 
+both traditional line oriented Unix shell commands and XML oriented
+shell commands in the xml-coreutils collection can be used together
+in as many ways as possible. 
+
+For our purposes, we represent a Unix shell command as a black
+box with two input slots, called STDIN and ARGV, and two output
+slots called STDOUT and STDERR. 
+
+In traditional shell commands, all these slots are line oriented (ie
+they have the structure of a list of lines of text), so there is no
+difficulty in connecting any one output slot of one command to an
+input slot of another command (although such a connection may not be
+very meaningful in some cases).
+
+By contrast, XML has a tree structure, and moreover line terminators
+are not significant (ie can be arbitrarily added or removed without
+changing the semantics). These properties imply that XML must be
+treated more carefully than simply as a list of text lines. We
+therefore think of XML as a new medium, distinct from the traditional
+list of lines medium, which we now call unixtext.
+
+For each input and output slot, there now is a choice of medium.  This
+introduces a new constraint for interoperability between shell
+commands, since two slots can only connect if the media are
+compatible.
+
+The xml-coreutils are designed to offer a panoply of (slot/medium)
+combinations to allow connections with each other and with traditional
+Unix utilities. The various types of tools are listed in the table
+below.  All commands expect unixtext in ARGV and output unixtext on
+STDERR.  This leaves three classes of commands, which effectively
+convert unixtext to XML, convert XML to XML, and convert XML to
+unixtext.
+
+                   |   STDIN  |  STDOUT  |   ARGV   |  STDERR
+--------------------------------------------------------------
+traditional unix   | unixtext | unixtext | unixtext | unixtext
+xml-x2u            |   XML    | unixtext | unixtext | unixtext
+xml-u2x            | unixtext |    XML   | unixtext | unixtext
+xml-x2x            |   XML    |    XML   | unixtext | unixtext
+
+Note that the medium of each slot is fixed. This is a conscious
+choice: While it's easy to allow any one program to output either XML
+or unixtext depending on some switch, it means that users would have
+to be more careful when using the tools.  For example, in a pipeline
+which expects XML data throughout, changing a switch could cause hard
+to find catastrophic failure. Fixing the media helps prevent this kind
+of problem.
+
+
+LIST OF XML-COREUTILS COMMANDS REQUIREMENTS
+
+
+XML-CAT (xml-u2x)
+
+This command has the signature
+
+xml-cat [OPTION] [FILE]...
+
+* It is designed to operate in a similar way to cat.
+
+* Like cat, it must be idemotent, so that xml-cat FILE | xml-cat is
+  equivalent to xml-cat FILE alone.
+
+* If some or all of the FILE arguments do not contain XML documents,
+  they should be ignored. If no FILE is given, STDIN is read.
+
+* cat FILE1 FILE2 | xml-cat should be equivalent to xml-cat FILE1
+  FILE2. This implies that if STDIN contains unixtext interspersed
+  with XML documents, then the unixtext should be ignored and the XML
+  documents concatenated. 
+
+* More generally, it makes sense for any listed FILE to skip unixtext
+  segments and concatenate remaining XML segments. This could be
+  useful for example if an XML document is extracted from a tutorial
+  file, or an archive is read containing several XML documents end to
+  end, etc.
+
+* xml-cat must always produce valid XML output or no output, or exit
+  with an error if this cannot be guaranteed.
+
+* Input data should not be "fixed" to ensure output is valid XML.
+
+XML-ECHO (xml-u2x)
+
+This command has the signature
+
+xml-echo [OPTION] [STRING]...
+
+* It is designed to operate in a similar way to echo, but guarantee
+  XML output. Special markup is recognized for defining tree structures.    
+
+* If no options are given, each string is written as character data of
+  the root element. Each string is followed by a newline, which is not
+  significant in XML but visually pleasing. This is similar to echo's
+  behaviour that spaces between distinct strings are not significant.
+
+* If no strings or options are given, echo simply prints a newline.
+  This is equivalent to having a single STRING argument which is the
+  empty string. xml-echo should likewise print an empty root wrapper
+  containing the same data as befits a single empty string.
+
+* Wnen the -e option is given, each STRING is interpreted. Backslash
+  control characters are expanded like echo does. In addition, special
+  markup is converted to XML tags.
+
+* A substring in square brackets such as "[PATH]" is treated as an
+  instruction to generate tags from the current path. The initial
+  current path is "/root". 
+
+* If the PATH is an absolute path, all open tags (except the root) are
+  closed and all all tags contained in PATH are opened in order. The
+  current path is replaced by PATH.
+
+* If the PATH is a relative path, the current path is appended with PATH,
+  and all relevant tags are closed or opened to reflect the change.
+
+* If PATH is . this is treated as a shorthand instruction to close and
+  immediately reopen the current tag. This allows simple creation of
+  sibling tags.
+
+* By default, tags and chardata are indented by level
+  automatically. However, the switch \c can be used on any level to
+  prevent indentation of all deeper levels (previous levels are still
+  indented as before). The switch takes effect immediately after it is
+  used.
+
+* The opposite to \c is \i, which indents all subsequent tags and
+  lines following a \n. If \i immediately precedes a closing tag, then
+  its effect is delayed until after the tag is closed, for visual
+  reasons.
+
+* Each node in a path can be immediately followed by attributes. An
+  attribute must have the form @name=value. For example
+  [x/y@one=two/z] expands to <x><y one="two"><z>. The quotes marks are
+  added automatically and should not be written.
+
+XML-PRINTF (xml-x2u)
+
+This command has the signature
+
+xml-printf [OPTION] FORMAT [[SOURCE]:XPATH]...
+
+* The FORMAT string is a printf style template for outputting pieces
+ of XML documents referenced by the XPATH options listed after it.
+
+* xml-printf can read XML fragments from both STDIN or external XML files,
+  this is selected by the optional SOURCE path. If SOURCE is empty or "stdin"
+  then the following XPATH applies to STDIN, otherwise the XPATH applies
+  to the file name SOURCE.
+
+* The ':' is always required, and is a delimiter to separate a file
+  name (which can contain '/' characters) and an XPath expression
+  (which can also contain '/' characters).
+
+* XPATH follows the rules in the Data Model (Section 5) given in the
+  W3C Recommendation http://www.w3.org/TR/xpath . The full XPath is
+  not supported (axes, predicates, namespaces, etc).
+
+* There are issues with white space handling of text nodes which
+  haven't been worked out yet.
+
+XML-LESS (xml-human)
+
+This command is outside the scope of xml-coreutils, but it makes sense
+for now to develop it as a support tool for viewing and debugging.
+
+The ultimate aim is to develop a viewer which can efficiently cope with
+an XML file of unlimited size. This rules out most DOM based viewers. The
+secondeary aim is to have a viewer which can be easily customized for 
+debugging and inspecting the output of xml-coreutils.
+
+* xml-less mimics less, and must be able to cope efficiently with
+  XML files of unlimited size.
+
+* xml-less can rearrange and colorize the document for viewing in
+  several ways, but doesn't interpret the XML. It is not a web browser.

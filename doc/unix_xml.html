@@ -1,0 +1,1396 @@
+<html>
+<head>
+<title>Is the Unix shell ready for XML?</title>
+</head>
+<body>
+<p>
+<h1>Is the Unix shell ready for XML?</h1>
+<p>
+<center><h2>by Laird A. Breyer</h2></center>
+
+<p>
+In this essay, I shall discuss (informally) some prospects for making the
+traditional Unix command line environment more XML aware.
+
+<p>
+XML is a widely used tree like format for representing data in textual
+form. It is not my aim here to advocate a single approach to
+working with such formats, nor to dismiss greatly successful existing
+toolsets such as XML parsing libraries, scripting extensions for
+popular languages, etc. This essay originated as a simple question:
+why can't I process XML seamlessly on the command line like other
+text?
+
+<p>
+I believe that some insight into this problem can be had at a high
+level. The tools I shall discuss generally do not exist yet, and I am
+not going to propose exactly how to implement them. The traditional
+Unix core utilities are lightweight and fast, close to optimal in both
+memory and cpu for their respective tasks, and I expect a usable XML
+command line suite to offer the same guarantees over time. As you will
+see, there are enough high level issues to consider before
+implementing.
+
+<p>
+At this point, I should explain why there is an issue at
+all. After all, the Unix shell excels at text processing, and XML
+documents are just text. 
+
+<p>
+Fundamentally, the core shell commands are line oriented. This means
+that they generally read input in the form of zero or more lines of
+text, and in turn output zero or more lines of text. The power of the
+shell is largely due to its ability to take the output of one program
+and give it as input to another program. In this way, complex results
+arise out of the specialized abilities of many programs.
+
+<p>
+Fundamentally also, XML is a tree structured format. While it could be
+represented as a single long line, and it can also be converted to a
+line oriented form (e.g. PYX format), this is not how it arises naturally
+in the wild.  A program that reads XML must navigate this
+structure, and if it writes XML as output, it must make sure to format
+its output correctly.  In XML, this is formally defined by the
+concepts of well formedness and validity. The existing shell utilities
+don't know how to navigate XML, and do not enforce output
+constraints. All this is left to the shell operator or programmer, who
+can easily forget to output a tag or navigate the XML incorrectly.
+
+<p>
+As a result, XML processing on the shell is brittle. What might start
+as properly XML formatted data is passed from program to program, any
+one of which can break the structure, ending up with a fancy line
+oriented result and pieces of strings which are tedious to recombine
+into XML at the end. A seamless shell experience should effortlessly
+preserve the XML structure from command to command, at least for those
+commands which are designed to work on XML.
+
+<p>
+A second problem is that XML is designed for modern international character
+sets, while the shell tools vary tremendously in their ability to 
+process non ASCII text, and in fact to pass it along undamaged. Any 
+XML shell commands should cope gracefully with these issues, making sure
+to not damage the data entrusted to them.
+
+<p>
+I also want to say a quick word about existing approaches. Many modern
+computer languages offer a more or less closely integrated XML
+component which turns an XML document into an object, and lets the
+programmer navigate and modify the object in clean ways, using systems
+such as DOM or SAX or XSLT etc. This will not change even if the shell
+becomes XML aware. 
+
+<p>
+What I hope to find out by writing this essay is how far the shell can
+become a natural environment for interactive, quick and dirty (but
+well formed!) XML processing, very much like it is for text oriented
+tasks today.
+
+<p>
+You might say, what's needed is a new shell with completely new
+facilities specifically designed for XML and ordinary text. That's of
+course one way to do it, but the very success of the Unix shell (pick
+your favourite flavour) makes it unlikely that a new shell would
+widely replace it on existing systems in a short time. So we are
+naturally constrained to looking at ways that XML fits into the
+current paradigm, i.e. as standard Unix programs with a standard input
+(STDIN), a set of optional parameters (ARGV), and separate outputs for
+data and out of band error information (STDOUT and STDERR).
+
+<p>
+Another natural question is to ask what the scope of shell-based XML
+manipulations ought to be. This is generally a hard question to
+answer, as it depends on what people who work with XML find useful to
+do. 
+
+<p> We could simply wait until a complete set of tools and operations
+emerges by natural selection and advocacy, as people gravitate towards
+what helps them and shun unworkable ideas. This has happened with
+libraries and APIs such as DOM and SAX, but hasn't generally happened
+yet at the level of the shell. For natural language processing, a
+well thought out collection of shell tools worth mentioning is LT XML.
+
+<p>
+We could alternatively take the XML format as a given, and work out
+theoretically all the common operations which allow everything to be
+done (after all, XML is a tree structure, one of the simplest and best
+studied in computer science). A step along this direction is the
+XmlStarlet project.
+
+<p>
+I will do neither of these here, and opt for a shortcut instead: the
+core Unix utilities have existed for a long time and proved both
+useful and versatile. Why not take these utilities as the basis for a
+set of XML utilities? This can be done by first working out just what
+each core tool does on ordinary text, and then see if and how it makes
+sense for an XML document. 
+
+<p>
+This then, is my goal in this essay.
+
+<p>
+<h2>The core Unix shell utilities</h2>
+
+<p>
+To begin with, here is a list of core Unix commands. 
+Obviously, I'm interested in commands which process text, so many
+commands which do something else are simply ignored. I've also
+listed a few directory and file manipulation commands because
+XML has a lot in common with Unix file system hierarchies.
+
+<p>
+No doubt, I've also missed a few or picked some which aren't really
+important. I made the list by searching the contents of packages
+called something like <i>coreutils</i>, and also looking at my copy of "Linux
+In a Nutshell" for interesting candidates, you could do the same. 
+I probably won't get to discuss each command fully anyway.
+
+<p>
+The list of commands below will be referred to as "<i>coreutils</i>" in this
+essay. I will then pick a command such as "<tt>cat</tt>", and discuss a new
+program called "<tt>xml-cat</tt>" which tries to do for XML what "<tt>cat</tt>" does for
+text. The complete set of XML commands will be referred to as
+"<i>xml-coreutils</i>". The discussions will be mainly about interoperability.
+
+<p>
+<pre>
+awk		cat		 cp			csplit
+cut		diff		 echo			find
+fmt		grep		 iconv			join
+ls		mkdir		 mv			paste
+printf		rm		 sed			seq
+sort		strings		 tr			uniq
+</pre>
+
+<p>
+<h2>The shell universe consists of lists of strings</h2>
+
+<p>
+It's important to realize that (generally speaking) the <i>coreutils</i>
+commands work within a universe consisting of lists of strings
+organized into lines, and stay within this universe. Some tools can
+also work with binary data, and shells can also redefine the exact
+meaning of lines through their separators, but I'll leave all that
+aside and concentrate on the basics.
+
+<p>
+A line is normally a string of text ending with the special '\n'
+character called the newline. It's not hard to abuse this terminology
+and in turn think of a string as a single line even if it doesn't end
+in '\n', and also as a list of lines which happens to have only one
+element. A list of lines is in turn a list of strings linked together
+by the '\n' character.
+
+<p>
+From this mental gymnastics, a simple idea arises: all <i>coreutils</i>
+commands read lists of strings, eiter on STDIN or as separate command
+parameters, and output lists of strings on STDOUT and STDERR, even if
+some of those lists are strictly speaking empty. Try picking your
+favourite command and seeing it in this light.
+
+<p>
+Moreover, lists (of strings) have nice properties: placing two lists
+(of strings) end on end gives another list (of strings), taking a
+fragment of some list (of strings) gives another list (of strings),
+even making a list of lists (of strings) gives simply a list (of
+strings) in a natural way, etc. In other words, lists form a closed
+universe for the shell commands to operate in.
+
+<p>
+<h2>The XML universe consists of trees</h2>
+
+<p>
+A tree, in computer science terminology, is the next simplest data
+structure after the list. Whereas a list is one dimensional with a
+simple ordering, a tree allows more complex hierarchical orderings.
+
+<p>
+An XML document has a tree structure. Here is a simple document,
+which I am going to call simple.xml (the name is there so I 
+can refer to it later):
+
+<p>
+<pre>
+&lt;?xml version="1.0"?&gt;
+&lt;root&gt;
+	&lt;salutation&gt;
+		&lt;greeting&gt;hello&lt;/greeting&gt;
+	&lt;/salutation&gt;
+	&lt;transport&gt;
+		&lt;engine&gt;
+		car
+		&lt;/engine&gt;
+		&lt;engine&gt;bus&lt;/engine&gt;
+		&lt;muscle&gt;bicycle&lt;/muscle&gt;
+	&lt;/transport&gt;
+&lt;/root&gt;
+</pre>
+
+<p>
+While it can always be viewed as a list of individual lines, 
+treating the lines of simple.xml independently doesn't capture the
+overall structural aspects, such as when and why opening tags such as
+&lt;transport&gt; must be associated with closing tags such as
+&lt;/transport&gt;. That is, lines don't naturally represent full and
+complete chunks of information for processing.
+
+<p> 
+Here's a line oriented picture of the
+simple.xml document, as a shell command might see it.
+With the visual layout removed, it is hard to see how to make sense
+of the information. For example, what is the relationship between
+line 11 (muscle...) and line 7 (engine)?
+<p>
+<pre>
+1.  ?xml version="1.0"?
+2.  root
+3.  salutation
+4.  greeting hello /greeting
+5.  /salutation
+6.  transport
+7.  engine
+8.  car
+9.  /engine
+10. engine bus /engine
+11. muscle bicycle /muscle
+12. /transport
+13. /root
+</pre>
+
+<p> 
+Here's a tree oriented picture of the simple.xml document, again
+as a shell command might see it. The spaces and line breaks have
+been removed as before, but the structural information such as closing
+tags etc. has been summarized in the tree coordinates (the command is
+tree oriented, so understands tree coordinates).
+As a result, any tree relationships between nodes are visible.
+For example, 2.2.3 (muscle) is the sibling of 2.2.1 (engine).
+
+<p>
+<pre>
+1.              ?xml
+2.              root
+2.1.            salutation
+2.1.1.          greeting
+2.1.1.1.        hello
+2.2.            transport
+2.2.1.          engine
+2.2.1.1.        car
+2.2.2.          engine
+2.2.2.1.        bus
+2.2.3.          muscle
+2.2.3.1.        bicycle
+</pre>
+
+<p>
+Thus I'm proposing here to mimic the list processing ability of
+<i>coreutils</i>, in a tree oriented way. But can this even make
+sense? Is the tree oriented world of <i>xml-coreutils</i> rich enough
+to contain the same number and variety of operations that make
+<i>coreutils</i> so useful? Let's find out.
+
+<p>
+As data structures, both the tree and the list consist of natural
+building blocks which are themselves trees or lists respectively. This
+means that combining lists appropriately gives a list, and combining
+trees appropriately gives a tree. We need never leave the universe of
+trees as long as the <i>xml-coreutils</i> follow certain rules.
+
+<p>
+But staying inside the universe of trees is one thing if you're
+already in it, there is also the question of how to get there from the
+universe of lists of strings? The latter is the universe that the Unix
+shell lives in today.
+
+<p> In <i>coreutils</i>, there is a similar problem, namely: how does
+one get to lists of strings from nothing? Typical examples of how this
+works in practice are the <tt>cat</tt> and <tt>echo</tt> commands, and
+I will shortly describe the corresponding <tt>xml-cat</tt> and
+<tt>xml-echo</tt> commands. As a rule, I must be able to communicate
+instructions for creating such lists, and this occurs on the input side.
+Moreover, the simplest instruction is to quote an example, ie to quote
+a string (for <i>coreutils</i>) or a tree (for <i>xml-coreutils</i>).
+Both <tt>cat</tt> and <tt>echo</tt> use this method.
+
+<p> However, it is important to remember that there are two sources of
+input for a shell program, namely the STDIN and the command line
+options, which I'm referring to as ARGV. While STDIN can easily
+contain XML data, it might contain a consecutive list of XML trees,
+which strictly speaking is a forest. The options command line ARGV
+cannot easily contain XML data: in its natural form, it is really
+designed to hold a list of (often small) single strings.
+
+<p> So to proceed (to define <tt>xml-cat</tt> and <tt>xml-echo</tt>),
+I need a principle for converting a (conceptual)
+string into a (conceptual) tree, and for converting a (conceptual)
+list of trees into a (conceptual) tree. The converse, namely
+converting a textual tree into a string or a list of strings is much
+easier since an XML document is already a single string (containing
+one or more '\n') as well as a list of strings (none of which contain
+'\n'), except that there is no preferred single way of representing
+the document in this way, precisely because line breaks can occur
+arbitrarily.
+
+<p> One more issue is the question of validity. An XML document is
+well formed if it looks like a tree, but to be valid it also has to
+have the correct tag names in all the correct places. So the universe
+of valid trees is both smaller, and inside, the universe of (well formed)
+trees. Which of these two universes is more desirable for <i>xml-coreutils</i>?
+
+<p>
+Because validity is related to <i>meaning</i>, it is not
+a desirable requirement for <i>xml-coreutils</i>. To see this, let's
+look at <i>coreutils</i>.
+
+<p>
+In the line oriented shell universe,
+validity would mean that all lines must be coherent. For example, if
+each line was supposed to contain English words to be valid (say),
+then every <i>coreutils</i> command would have to
+verify that it didn't introduce a French word by mistake.  Otherwise,
+<i>coreutils</i> would be breaking valid lists. In this
+case, it would be impossible to construct a French/English dictionary
+without destroying validity. 
+
+<p> Now let's consider <i>xml-coreutils</i>. A valid tree must have
+certain tags in certain places, just like the previous English
+vocabulary requirement. This makes it hard to split or combine XML
+documents which may not have anything meaningful in common. For
+example, an SVG image document could not be mixed easily with an
+XML spreadsheet document. Clearly, this is undesirable.
+
+<p> While validity is an unacceptable burden on <i>xml-coreutils</i>,
+that doesn't mean that a single <i>xml-coreutils</i> command couldn't
+formally test the validity of an input document. In <i>coreutils</i>, the
+analogue would be a spell checker.
+
+<p>
+<h2><tt>xml-cat</tt></h2>
+
+<p>
+The <tt>cat</tt> command is perhaps the simplest one to generalize, as it
+simply copies the contents of one or more files specified on the
+command line, or the contents of STDIN, to STDOUT in order. For text
+files, this gives us a ready source for producing a list of strings
+suitable for shell processing. In other words, it is an entry point
+into the shell universe from nowhere (here nowhere stands for
+something completely outside of the line oriented shell universe, eg a
+file on disk).
+
+<p>
+Working backwards, I want <tt>xml-cat</tt> to produce a true XML document
+which it reads from one or more files, i.e. from nowhere as far as the 
+tree oriented universe is concerned. Clearly, the files it reads
+should contain well formed XML to begin with, or else <tt>xml-cat</tt> will
+have to do all sorts of work to create the XML.
+
+<p>
+There is no guarantee that any one input file is well formed or properly
+valid unless it is completely read first. It's often clear if a file
+claims to be XML, because it starts with "&lt;?xml". However, this
+string is part of the optional prolog, and isn't 100% reliable.
+What is true at a minimum is that an XML document must begin with the
+character '&lt;'.
+
+<p> As I don't want <tt>xml-cat</tt> to pollute its output with
+non-XML file contents (since that would take us immediately out of the
+XML tree universe), it seems natural that <tt>xml-cat</tt> should
+refuse to copy all input files which don't start with '&lt;'. Alternatively,
+it can scan the text and discard everything until it encounters the first
+'&lt;'. If the next character after that is a valid XML character, then
+the program considers that the document has started.
+
+<p>
+This principle means that the operator doesn't need to worry about which files
+are really XML and which are not, or even if a file only contains a snippet of
+XML. If during copying <tt>xml-cat</tt>
+finds that its input is not well formed, it should stop with an
+error. This is not much different from being unable to continue due to
+a disk error, but is necessary to preserve the trust of subsequent processors
+which expect well formed XML.
+
+<p>
+It is debatable whether <tt>xml-cat</tt>, when unable to finish due to well
+formedness errors in input, should perhaps output the appropriate
+closing tags to ensure that whatever ends up on STDOUT is well formed
+XML. It can't erase partial output after all, and subsequent processes
+must be able to cope. While this is plausible behaviour, there are
+always going to be situations where
+<tt>xml-cat</tt> must end so quickly that it can't finish properly.
+Thus instances of incomplete XML will always exist in the world of
+<i>xml-coreutils</i>.
+
+<p>
+In the world of <i>coreutils</i>, incomplete text files are still text files,
+and incomplete lines are still lines, so the universe of lists of
+strings is robust to this particular predicament. In <i>xml-coreutils</i>
+however, perhaps a fundamental principle should be that incomplete XML
+input causes whichever program reads it to simply end with an
+error. This mimics a principle followed by XML parsers generally: when
+an error occurs, stop immediately.
+
+<p>
+The major design issue for <tt>xml-cat</tt> is how to convert several XML
+documents into a single one. For text files, which are lists of
+strings after all, this is easy enough, since two lists of strings
+placed end to end form a single list of strings. But two trees placed
+end to end represent a forest; to turn this into a tree, there needs to be a
+common root.
+
+<p>
+In XML, this can be done by adding a header and a footer. The header
+contains firstly a line beginning with "&lt;?xml" and ends with a root
+tag such as "&lt;root&gt;". The footer consists of "&lt;/root&gt;". Together, I
+shall call this the root wrapper.
+
+<p>
+But is this the best way? After all, I want <tt>xml-cat</tt> to create a single
+stream from several XML input files, probably to treat them as a single
+hierarchical source of data. Moreover, what happens if I <tt>xml-cat</tt> a single
+file? I'll end up with an extra root wrapper. And if I <tt>xml-cat</tt> twice,
+three or four times using the previous result as input, I'll end up
+with many extra root nodes, which makes it hard to know at what level 
+the true document exists.
+
+<p>
+It's possible for <tt>xml-cat</tt> to copy the first file as-is,
+and simply remove the existing root wrappers around the second file,
+third file, etc.  This has the nice side effect that <tt>xml-cat</tt>
+becomes idempotent just like the <tt>cat</tt> is in <i>coreutils</i>.
+While this idea is seductive, it has one small problem, namely it can
+destroy the validity of an XML document. This may not matter to our
+shell utilities, but humans won't like it.
+<p>
+Suppose I <tt>xml-cat</tt>
+together two XML documents with different DTDs. If I preserve the
+root wrapper of the first document and simply splice in the second document,
+there's no guarantee that the XML tags in the second document are compatible
+with the DTD. The result is still well formed, but not valid. It follows
+that I can't keep the first file's root wrapper either, and must replace
+it with an artificial "&lt;root&gt;" wrapper, so that no DTD is imposed.
+Note that this change still preserves the idempotent property of <tt>xml-cat</tt>.
+<p>
+So we see that <tt>xml-cat</tt> must remove DTDs, but
+perhaps it should be able to combine documents either way, with the
+first approach selected by a switch? Here is a prototype usage signature
+for <tt>xml-cat</tt>:
+
+<p>
+<pre>
+xml-cat [OPTION] [FILE]...
+
+	Concatenate FILE(s), or standard input, to standard output.
+	If FILE is not in XML format, it is ignored. If a FILE is
+	not well formed, xml-cat exits with an error. The root
+	wrapper of the first FILE is used, subsequent wrappers are
+	discarded. 
+</pre>
+
+<p>
+I will gloss over other technical issues, such as what to do when
+concatenating several documents which all use different character
+sets.
+
+<p>
+<h2><tt>xml-echo</tt></h2>
+
+<p>
+In <i>coreutils</i>, the <tt>echo</tt> command is, like <tt>cat</tt>, a convenient way of
+creating lists of strings which can be processed later. While cat 
+opens files given on the command line, <tt>echo</tt> directly converts one or
+more strings, given in ARGV, into a list of strings on STDOUT.
+
+<p>
+Naturally, <tt>xml-echo</tt> should therefore take a string and produce an XML
+document. Of course, the existing <i>coreutils</i> <tt>echo</tt> command can, with
+some effort, already produce any XML document I care to produce, but
+this is tedious and error prone, quite the antithesis of what I am aiming
+for in this essay. Below is an example of what I have in mind (the
+<tt>%</tt> represents the shell prompt):
+
+<p>
+<pre>
+% xml-echo "hello"
+&lt;?xml version="1.0"&gt;
+&lt;root&gt;
+hello	
+&lt;/root&gt;
+</pre>
+
+<p>
+Like its <i>coreutils</i> counterpart <tt>echo</tt>, the command <tt>xml-echo</tt> becomes 
+truly useful when embedding control characters. In <i>coreutils</i>, I can
+write
+
+<p>
+<pre>
+% echo -e "Hello\nThis is a test\nThird line"
+Hello
+This is a test
+Third line
+</pre>
+
+<p>
+By embedding the '\n' character, I can control the output and
+generate multiple lines easily. This deceptively simple feature allows
+the creation of potentially complex structures in the shell's line
+oriented universe from a single string.
+
+<p>
+The analogous task for <tt>xml-echo</tt> is obviously to create potentially
+complex tree universe structures from a single string. Unlike <tt>echo</tt>,
+here a single special character '\n' is insufficient to create general
+hierarchies.
+
+<p>
+In XML, individual nodes in a document can be referenced by XPath
+expressions, which are string expressions very similar to a
+traditional Unix file path. One way to achieve <tt>echo</tt>'s desired
+behaviour for <tt>xml-echo</tt> is by embedding such expressions into the
+command parameters, much like '\n' is embedded. <tt>xml-echo</tt> only needs
+a subset of XPath to work well. An example should illustrate the idea.
+Here is how to recreate the simple.xml document:
+
+<p>
+<pre>
+% xml-echo -e "[/root/salutation/greeting]hello" \
+            "[../../transport/engine]car[../engine]bus[../muscle]bicycle"
+&lt;?xml version="1.0"?&gt;
+&lt;root&gt;
+	&lt;salutation&gt;
+		&lt;greeting&gt;hello&lt;/greeting&gt;
+	&lt;/salutation&gt;
+	&lt;transport&gt;
+		&lt;engine&gt;car&lt;/engine&gt;
+		&lt;engine&gt;bus&lt;/engine&gt;
+		&lt;muscle&gt;bicycle&lt;/muscle&gt;
+	&lt;/transport&gt;
+&lt;/root&gt;
+</pre>
+
+<p>
+Firstly, I've surrounded the XPath expressions by square brackets
+[]. Unlike the case of '\n', both the beginning and end must be
+marked, because otherwise it is hard to tell where the path stops and
+the <tt>echo</tt> data begins. Also, unlike '\n' which is often imagined at the
+end of a line, here the XPath expression within [] is at the beginning
+of the corresponding data.
+
+<p>
+Secondly, you'll note that while some paths are absolute (they start
+with a '/'), other paths are relative (they don't start with '/'). How
+does <tt>xml-echo</tt> know the correct tree structure which is being
+navigated?  The answer is it doesn't, instead the tree is constructed
+from scratch at the same time that the string is being read, and the
+current path is updated accordingly. The initial path is the root
+node, and if a path refers to a nonexistent node, it gets created
+automatically.
+
+<p>
+Thirdly, by setting the paths apart and starting with an "empty" XML
+document consisting only of the root node, the behaviour of <tt>xml-echo</tt>
+stays compatible with the simpler "hello" example discussed at the
+beginning of this section.
+
+<p>
+<pre>
+xml-echo [OPTION]... [STRING]...
+
+	Echo the STRING(s) to standard output in the form of
+	an XML document. With option -e, interpret embedded XPath
+	expressions as a structural blueprint.
+</pre>
+
+<p>
+There are other issues which should be thought through at this point,
+such as how to easily fill in the attributes of tags. I'll leave this
+to you, and instead talk about the problem of multiple invocations.
+
+<p>
+In the <i>coreutils</i> environment, it is common to invoke the <tt>echo</tt> command
+several times in succession as another way of obtaining multiple lines of
+output. In <i>xml-coreutils</i>, this is slightly unwieldy, because each
+command must produce a well formed XML document rather than a
+snippet. If several <tt>xml-echo</tt> commands each produce an XML output in
+succession, then I end up with a list of XML documents rather than a
+single XML formatted output.
+
+<p>
+Fortunately, this problem can be addressed easily. The simplest way is
+to note that <tt>xml-cat</tt>, which I looked at earlier, already converts
+multiple XML documents into a single XML document.  I originally
+discussed this for multiple XML files on the command line, but the
+principle is the same for a list of separate XML documents on
+STDIN. This is a general way of solving this problem, (of combining
+the outputs of several <tt>xml-echo</tt> commands)
+which doesn't exist in <i>coreutils</i>.
+
+<p>
+There is another obvious way to prevent a forest from being formed,
+namely to simply not output the full root wrapper if it is
+inconvenient. The <tt>xml-echo</tt> command could have a pair of switches, say
+<i>-h</i> and <i>-t</i>, which could prevent the header or the footer of the root
+wrapper being printed to STDOUT (or even both). Then several
+invocations of <tt>xml-echo</tt> could combine their output into a single
+tree. This is a very bad idea, because it encourages broken XML to be
+produced. And even if people are careful to always print the header
+and footer correctly, it quickly becomes a maintenance nightmare in a
+script.
+
+<p>
+<h2><tt>xml-iconv</tt></h2>
+
+<p>
+The iconv command converts a file's character set encoding
+into another encoding while preserving the contents as far as possible. 
+
+<p>
+In XML, documents can choose among several encodings for representing content,
+and the <tt>xml-iconv</tt> command is there to perform the conversions using 
+knowledge of character sets and entities.
+
+<p>
+<pre>
+xml-iconv [OPTION] [FILE]
+
+	  Convert the encoding of FILE or STDIN while preserving the content.
+</pre>
+
+<p>
+<h3>Interlude</h3>
+
+<p>
+I've described two commands so far, <tt>xml-cat</tt> and <tt>xml-echo</tt>, whose main
+attraction is to easily create XML documents for processing. In other
+words, these commands are standard ways of entering the tree universe
+of XML from within the Unix shell's list of strings universe or even
+outside of it.
+
+<p>
+These commands are clearly not the only way, and nothing stops us
+from creating a whole panoply of conversion commands which take existing
+files and printouts and turn them into well formed XML.
+
+<p>
+For example, you can take the date command, whose purpose in <i>coreutils</i>
+is to print a single line containing the current date and time, and create
+a corresponding <tt>xml-date</tt>. Another conversion command might take a legacy
+HTML file and convert it into well formed XML.
+
+<p>
+But before we go ahead and rewrite an XML version of every useful
+program in the world, it is worth noting that with <tt>xml-cat</tt> and
+particularly <tt>xml-echo</tt>, we have a good deal of the existing Unix shell
+universe at our fingertips.  There's no need to write <tt>xml-date</tt> if a
+command invocation such as
+
+<p>
+<pre>
+% xml-echo `date`
+</pre>
+
+<p>
+will do the trick. Once XML is seamlessly integrated with the Unix shell,
+there can be several ways to get the same results.
+
+<p>
+<h2><tt>xml-ls</tt></h2>
+
+<p>
+So far, I've discussed simple ways of creating XML documents which are
+ready to be processed by Unix commands. Now I want to talk about
+actual processing.
+
+<p>
+One of the most useful <i>coreutils</i> commands is <tt>ls</tt>, whose job is to list
+file names. Strictly speaking, this isn't a text processing task at
+all.  However, it is often useful to create a list of files to process
+further. For XML documents, an analogous task consists in obtaining a
+list of nodes.
+
+<p>
+I've already mentioned XPath expressions in the section on
+<tt>xml-echo</tt>. The XPath naming conventions are explicitly modelled on the
+Unix filesystem naming conventions, so perhaps it makes sense in turn
+to model certain XML operations on familiar Unix filesystem commands.
+
+<p>
+To make this idea concrete, let's examine <tt>ls</tt> more closely. Ignoring
+the various switches, <tt>ls</tt> takes one or more directories and file names
+on its command line, outputting the name of each such file and the
+names of all the files inside each directory. The various switches
+print out extra information about each file, which typically doesn't
+involve opening the file.
+
+<p>
+Similarly, <tt>xml-ls</tt> can be given a list of XML file names on the command
+line, and it will list the first level nodes below the root of each
+such XML document, collecting them into one single XML output. With
+switches, the output tree can also contain simple information about
+the listed nodes. In effect, <tt>xml-ls</tt> treats each XML document on the
+command line as if it was a directory given to <tt>ls</tt>, and if nothing is
+on the command line, then it looks at what's available on STDIN.
+
+<p>
+<tt>xml-ls</tt> can also output deeper nodes when given an XPath expression
+right after an XML file name on the command line. Since XPath and Unix
+both use the same separator '/', this might cause some ambiguity for
+certain file hierarchies. A ':' is typically not present in file
+paths, so this can serve to separate the two types of paths as
+is already done by some unrelated Unix commands.
+
+<p>
+<pre>
+xml-ls [OPTION]... [FILE][:XPATH]...
+
+	List information about the nodes in each FILE to standard output,
+	using XPATH to select the nodes to display. If no FILE(s) are 
+	present, operate on the XML document in STDIN with the first 
+	available XPATH.
+</pre>
+
+<p>
+Here is an example:
+
+<p>
+<pre>
+% xml-ls simple.xml:/root/salutation
+&lt;?xml version="1.0"&gt;
+&lt;root&gt;
+	greeting
+&lt;/root&gt;
+</pre>
+
+<p>
+<h2><tt>xml-mv</tt>, <tt>xml-cp</tt>, <tt>xml-rm</tt>, <tt>xml-mknode</tt></h2>
+
+<p> The <i>coreutils</i> commands <tt>mv</tt>, <tt>cp</tt> and
+<tt>rm</tt> respectively move (rename), copy and delete files whose
+paths are listed on the command lines. Both <tt>mv</tt> and <tt>cp</tt> require at least
+two arguments, because the last is used as a destination.
+
+<p>
+By analogy, <tt>xml-mv</tt> moves a subtree from one XML document to another,
+<tt>xml-cp</tt> copies a subtree and <tt>xml-rm</tt> removes subtrees. 
+
+<p>
+The command line invocations mimic the model of <tt>xml-ls</tt>, namely:
+
+<p>
+<pre>
+xml-mv [OPTION]... SOURCE[:XPATH]... DEST[:XPATH]
+xml-cp [OPTION]... SOURCE[:XPATH]... DEST[:XPATH]
+
+       Move or copy the nodes specified by XPATH in the XML document
+       SOURCE into the XML document DEST at the node XPATH. If SOURCE
+       is missing, STDIN is used. If DEST is missing, STDOUT is written. 
+</pre>
+<p>
+<pre>
+xml-rm [OPTION]... [FILE][:XPATH]...
+
+       Remove the nodes of FILE(s) specified by XPATH. If XPATH
+       is absent, FILE is emptied (i.e. only the root node is left),
+       but not deleted.
+</pre>
+
+<p>
+Besides being used on XML documents stored in the filesystem, it may
+also make sense to apply these <i>xml-coreutils</i> commands on an XML document
+given on STDIN. 
+
+<p>
+Conceptually, one needs only to replace SOURCE with STDIN and DEST with
+STDOUT in the case of <tt>xml-mv</tt> and <tt>xml-cp</tt>, although in practice this may
+force a full copy of the STDIN document to be kept for referral.
+
+<p>
+<tt>xml-rm</tt> too can take its input from STDIN and print a pruned document on
+STDOUT. 
+
+<p>
+Note that for performance reasons, it is undesirable to ever save a
+full copy of STDIN just so we can move a subtree. Therefore, the
+<tt>xml-mv</tt>, <tt>xml-cp</tt> and <tt>xml-rm</tt> commands should really be implemented in a
+stream friendly way, i.e. not assume that an XML file is randomly seekable.
+
+<p>
+The <tt>xml-mknode</tt> command is modeled after <tt>mkdir</tt>, and creates one or
+more empty nodes based on an XPath expression.
+
+<p>
+<pre>
+xml-mknode [OPTION] [FILE]:XPATH...
+
+	   Create a node in FILE corresponding to XPATH. If FILE
+	   is absent, copy STDIN to STDOUT while adding the nodes
+	   specified by XPATH.
+</pre>
+
+<p>
+Here is an example:
+
+<p>
+<pre>
+% xml-cat simple.xml | xml-rm :/root/transport
+&lt;?xml version="1.0"?&gt;
+&lt;root&gt;
+	&lt;salutation&gt;
+		&lt;greeting&gt;hello&lt;/greeting&gt;
+	&lt;/salutation&gt;
+&lt;/root&gt;
+</pre>
+
+<p>
+<h3>Interlude</h3>
+
+<p> We have now seen several commands which accept an XPATH and try to mimic
+basic directory and file operations. It isn't hard to carry this analogy further
+and try to simulate the shell concept of <i>working directory</i>.
+<p>
+For example, an <i>xml-coreutils</i> command called <tt>xml-cd</tt>
+could set an environment variable called <i>PWXD</i> (for the current
+working XPATH), which is then used as a default prefix for relative
+XPATH expressions if and when it makes sense.  Another environment
+variable might contain a list of default XPATH expressions in a
+similar way to the classic shell variable PATH.
+
+<p>Unfortunately, this simple idea fails in the Unix shell, because
+processes (such as <tt>xml-cd</tt>) cannot modify their parent's environment.
+This therefore requires either tight cooperation with the shell (which shell?)
+or shared memory programming.
+<p> Moreover, such extensions don't actually <i>do</i> anything in the
+tree oriented XML universe, rather they provide a support role
+traditionally offered by a shell. This means that they are not really
+a central part of <i>xml-coreutils</i>, and I won't develop this aspect further
+in this essay.
+
+<p>
+<h2><tt>xml-seq</tt></h2>
+
+<p>
+This command builds a list of XPath node addresses. This may be
+particularly useful in for loops, or together with <tt>xml-echo</tt>, since the
+latter can use XPath node addresses as control elements. The original
+<i>coreutils</i> <tt>seq</tt> command builds a list of integers.
+
+<p>
+<h2><tt>xml-find</tt></h2>
+
+<p>
+In <i>coreutils</i>, <tt>find</tt> searches files in a directory hierarchy and either 
+prints them in a list, or performs other specified actions on each file. 
+
+<p>
+Similarly, <tt>xml-find</tt> will operate on one or more input XML documents,
+whether specified as file names on the command line or given on STDIN,
+looking for nodes and printing them on STDOUT or performing other
+standard actions.
+  
+<p>
+However, unlike the commands discussed so far, <tt>xml-find</tt> does not write
+an XML document on STDOUT, but instead writes a list of XPath
+expressions. This may seem strange at first: haven't I argued for
+always staying inside the tree universe of XML? Why should the ouput
+of <tt>xml-find</tt> belong to the list of strings oriented universe of
+<i>coreutils</i>?
+
+<p>
+<h3>Interlude</h3>
+
+<p>
+I've discussed now several commands which can use an XPATH expression
+on the command line, and more such programs will be presented below.
+
+<p>
+While such expressions can often be written a priori, there are cases
+where it makes more sense to extract a number of suitable XPaths from
+an existing XML document. 
+
+<p>
+This is a difficult choice. Since <i>xml-coreutils</i> programs do take their input
+from both STDIN and the command line, it's sometimes necessary to use
+both the tree format of XML documents and the string format of ARGV
+to get things done. 
+
+<p>
+Consider the alternative: there are now several <i>xml-coreutils</i> commands
+which output XML, and there is the original Unix shell, including
+<i>coreutils</i>, which output lists of strings and even single strings.
+
+<p>
+This ought to be enough to do serious work, i.e. we can use the shell
+and <i>coreutils</i> as before, and when dealing with XML data we use the 
+<i>xml-coreutils</i>. Moreover, we can even wrap the line oriented output of 
+many <i>coreutils</i> commands into XML.
+
+<p>
+The problem that won't go away, however, is that the shell still isn't
+aware of the XML universe. The interaction is only one way, i.e. we can
+use the <i>coreutils</i> as building blocks in the tree oriented XML universe,
+but not the other way around.
+
+<p>
+So there is a blind spot for generating strings suitable as input to
+<i>coreutils</i> commands, and more importantly, as command line options.
+Command line options are naturally string and list oriented, whether
+I am discussing <i>coreutils</i> or <i>xml-coreutils</i> commands.
+
+<p>
+So if I want to maximize the power of reusable components, I am forced
+to have some <i>xml-coreutils</i> commands, such as <tt>xml-find</tt>, which can
+understand XML related information and convert it into simple string
+form. Whether this is called <tt>xml-find</tt> or <tt>xml-somethingelse</tt> is
+unimportant. I like <tt>xml-find</tt>.
+
+<p>
+Here is a sample output for <tt>xml-find</tt>:
+
+<p>
+<pre>
+% xml-find simple.xml
+/root
+/root/salutation
+/root/salutation/greeting
+/root/transport
+/root/transport/engine
+/root/transport/engine
+/root/transport/muscle
+</pre>
+
+<p>
+It's easy to take this list and use it in ordinary shell expressions.
+You'll note that an analogue of <tt>xml-find</tt> for tree universe type output
+was already discussed: it's <tt>xml-ls</tt>. See also the <tt>xml-strings</tt> command
+defined later.
+
+<p>
+<pre>
+xml-find [FILE][:XPATH]... [EXPRESSION]
+
+	 Search the nodes of each FILE and each XPATH, or STDIN,
+	 and evaluate EXPRESSION on each. If no EXPRESSION is given,
+	 the default action of printing the XPath of the node is
+	 performed.
+</pre>
+
+<p>
+There is another reason why <tt>xml-find</tt> ought to produce line oriented
+output. In <i>coreutils</i>, <tt>find</tt> can execute one or more shell commands on
+every file that it extracts, using the <i>-exec</i> switch. We might want to
+allow the same functionality in <tt>xml-find</tt>, i.e. executing shell commands
+on full XML subtrees. If <tt>xml-find</tt> had to output well formed XML, then
+the shell commands which can be executed would have to work together
+to output well formed XML, and in fact couldn't run in parallel. But
+this way, the <i>-exec</i> functionality of <tt>xml-find</tt> is not restricted to XML
+aware commands, and any type of string output is acceptable.
+
+<p>
+<h2><tt>xml-cut</tt></h2>
+
+<p>
+Like its <i>coreutils</i> counterpart <tt>cut</tt>, the <tt>xml-cut</tt> command prints only
+certain parts of each node. For example, <tt>xml-cut</tt> can be used to print
+the input document with all tags containing only certain attributes,
+or textual data truncated to a certain length, etc.
+
+<p>
+<h2><tt>xml-join</tt></h2>
+
+<p>
+The <tt>xml-join</tt> command takes two XML files and interleaves compatible
+subtrees according to the specified level. This is a tree oriented
+version of the <i>coreutils</i> <tt>join</tt> command.
+
+<p>
+<h2><tt>xml-csplit</tt></h2>
+
+<p>
+The <tt>xml-csplit</tt> command is a kind of converse to the <tt>xml-cat</tt> command.
+Its purpose is to split a large XML file into a series of smaller ones
+with identical headers. The splitting is determined by command line options.
+
+<p>
+<h2><tt>xml-paste</tt></h2>
+
+<p>
+This command merges two XML trees, leaf by leaf. 
+
+<p>
+<h2><tt>xml-uniq</tt></h2>
+
+<p>
+This command merges sibling nodes that have the same name.
+
+<p>
+<h2><tt>xml-sort</tt></h2>
+
+<p>
+This command sorts sibling nodes. The output is an XML document which
+resembles the original with rearranged nodes.
+
+<p>
+<h3>Interlude</h3>
+
+<p>
+I have now defined most of the initial commands in <i>xml-coreutils</i>.
+Some of the commands allow us to create an XML stream or file from "nothing",
+while others simply operate on existing streams or files. 
+
+<p>
+What I haven't discussed fully is how to turn an XML stream back into
+a textual list of strings. Obviously, one can always use the <i>coreutils</i>
+commands on any of our XML streams, since they are just fancy text
+files. But this is tedious, because the XML markup ends up being more noise
+than signal, and a better class of tools should save us time and frustration.
+
+<p>
+Tools like the <tt>xml-find</tt> command presented earlier already output line
+oriented strings, and are designed specifically to feed back
+information into the conventional shell universe with minimal effort.
+
+<p>
+The commands defined below are other natural ways of stepping
+out of the universe of trees into the universe of lists of strings.
+While <tt>xml-find</tt> had an emphasis on being compatible with command line
+semantics, below I want to make it easy to output human readable text. 
+
+<p>
+<h2><tt>xml-strings</tt></h2>
+
+<p>
+The <tt>xml-strings</tt> command simply extracts all the text data in an XML
+document and prints it with minimal formatting. In other words, it
+removes the XML markup and forms simple paragraphs.
+
+<p>
+<pre>
+xml-strings [FILE]...
+
+	    Extract and flatten text to standard output.
+</pre>
+
+<p>
+<h2><tt>xml-printf</tt></h2>
+
+<p>
+In <i>coreutils</i>, <tt>printf</tt> operates like the C function of the same name,
+printing to STDOUT a format string containing placeholders which are filled
+in by evaluating the remaining parameters.
+
+<p>
+As every modern shell has variable interpolation facilities and the XML
+format doesn't respect whitespace, a command which simply mimics <tt>printf</tt>
+but outputs XML offers little value over the existing <tt>xml-echo</tt> command.
+Therefore, in <i>xml-coreutils</i>, the behaviour of <tt>xml-printf</tt> generalizes in
+a different direction. 
+
+<p>
+In the C language, the <i>printf</i> function is often used to print the
+values of program variables and data structures. Since an XML document
+can be naturally viewed as a complex datastructure, it makes sense to
+define <tt>xml-printf</tt> as a simple way to print the values of XML nodes.
+
+<p>
+<pre>
+% xml-printf "%s you!" simple.xml:salutation/greeting
+hello you!
+</pre>
+
+<p>
+Moreover, since this is new behaviour for the Unix shell, and since
+<tt>xml-echo</tt> can already construct XML trees, the greatest value is
+obtained when <tt>xml-printf</tt> produces free form text rather than XML output.
+
+<p>
+<pre>
+xml-printf FORMAT [[SOURCE]:XPATH]...
+
+	   Print to STDOUT a formatted string FORMAT where
+	   the placeholders are filled by the values of the
+	   XPATH expressions, relative to the document in STDIN or
+           SOURCE as appropriate.
+</pre>
+
+<p>
+<h2><tt>xml-fmt</tt></h2>
+
+<p>
+The <i>coreutils</i> <tt>fmt</tt> command rearranges the paragraphs of text in its
+input to make them easier to read for humans. Similarly <tt>xml-fmt</tt> is a
+pretty printer, whose purpose is to make its input XML documents clean
+looking, but won't change the interpretation. This isn't necessary for
+other <i>xml-coreutils</i> commands, but the formatting can be useful for
+other shell utilities.
+
+<p>
+<pre>
+xml-fmt [OPTION]... [FILE]...
+
+	Reads each XML file in its input and reformats them visually
+	to STDOUT. If no FILE(s) are given, reads STDIN.
+</pre>
+
+<p>
+<h2><tt>xml-awk</tt></h2>
+
+<p>
+In <i>coreutils</i>, <tt>awk</tt> is a lightweight scanner which operates on the
+lines of an input text, one at a time. Each line can be processed
+through instructions written in the <tt>awk</tt> programming language. <tt>awk</tt>'s
+output is again a sequence of lines.
+
+<p>
+In <tt>xml-awk</tt>, the <tt>awk</tt> programming language is largely unchanged, but
+instead of acting on lines, <tt>xml-awk</tt> acts on the data of each node.
+Like <tt>awk</tt>, <tt>xml-awk</tt> supports scripting blocks which are executed
+only when a regular expression matches the data, but <tt>xml-awk</tt> has extra 
+awareness of the current XPath node, and is also able to access the node's
+attributes. This allows more sophisticated conditional blocks suited
+for tree structures.
+
+<p>
+Unlike <tt>awk</tt>, <tt>xml-awk</tt> outputs an XML document. This is to foster reusing
+the output by other XML tools. It is easily possible to output plain
+text by simply passing the resulting XML document to <tt>xml-strings</tt>.
+
+<p>
+<pre>
+% xml-cat simple.xml | xml-awk '/salutation:{print}'
+&lt;?xml version="1.0"&gt;
+&lt;root&gt;
+	&lt;greeting&gt;hello&lt;/greeting&gt;
+&lt;/root&gt;
+</pre>
+
+<p>
+In <i>coreutils</i> <tt>awk</tt>, an action operates on a single line of text at a
+time, which is helpfully parsed into several variables named $1, $2,
+etc. This is probably the biggest reason for <tt>awk</tt>'s power, since the 
+tedious processing of tokens is completely hidden behind very simple 
+objects.
+
+<p>
+Since an <tt>xml-awk</tt> action block operates on an XML subtree rather than a
+single line of text, there will have to be a much richer way of
+referring to subelements within the subtree, not just relative XPath
+expressions for nodes and attributes, but possibly a blend with the
+$1, $2 formalism which allows extracting individual words in freeform
+text surrounded by XML tags. For example, an expression such as
+$1.$2 might refer to the second token within the first subtree. 
+This question is much too big and delicate to address here.
+
+<p>
+<h2><tt>xml-grep</tt></h2>
+
+<p>
+The <i>coreutils</i> command <tt>grep</tt> searches the lines of input documents for
+string matches and prints the discovered lines if any. The <i>xml-coreutils</i>
+command <tt>xml-grep</tt> searches the nodes of input documents for string matches
+and prints them. The result is again an XML document, which can be fed
+to another <i>xml-coreutils</i> command etc.
+
+<p>
+<h2><tt>xml-diff</tt></h2>
+
+<p>
+The <i>coreutils</i> <tt>diff</tt> command is a very useful tool which compares two
+text files and displays the differences in an intelligent way.  An
+important aspect of this is that <tt>diff</tt> produces output which can be
+directly fed into an editor such as <tt>ed</tt> to convert one file into the
+other.
+
+<p>
+Naturally, <tt>xml-diff</tt> should output an XML representation of the
+difference between two XML documents. Due to its hierarchical nature,
+XML is also ideal for adding extra information which might be used to
+recover one file from the other.
+
+<p>
+<h2><tt>xml-tr</tt></h2>
+
+<p>
+In <i>coreutils</i>, the <tt>tr</tt> command transliterates certain characters. 
+In <i>xml-coreutils</i>, the <tt>xml-tr</tt> command has a similar, but more complicated
+task. It must transliterate characters without modifying the XML tags
+themselves, respecting the document's character set, 
+and it can optionally transliterate XML tags and attributes, to perform
+a clever kind of structural surgery. 
+
+<p>
+<h2><tt>xml-sed</tt></h2>
+
+<p>
+The <tt>xml-sed</tt> command is the last command I discuss in this essay, and
+the most tentatively. The other commands above already give a bird's eye
+view of the issues and complications that occur naturally when trying
+to design <i>xml-coreutils</i>. 
+
+<p> The <tt>sed</tt> command is one of the most powerful commands in
+<i>coreutils</i>. It reads text files one line at a time and allows
+arbitrary editing to take place. It stands to reason that its
+<i>xml-coreutils</i> counterpart <tt>xml-sed</tt> should therefore
+allow arbitrary editing of XML subtrees and be particularly useful for
+simple substitutions. A well designed <tt>xml-sed</tt> must cope with
+several issues.
+
+<p>
+Like <tt>xml-tr</tt>, there is the question of whether editing occurs in
+between the XML markup tags, or whether the tags and attributes
+themselves are to be edited. This is more than mere convenience, since
+<tt>xml-sed</tt> must always output a well formed XML document, regardless of
+the editing operation performed. Well formedness is therefore an
+invariant.
+
+<p>
+Another issue is the coexistence of regular expressions and XPath
+expresssions, which are both natural ways of navigating the XML tree
+structure and the unstructured embedded data. See the discussions of
+<tt>xml-echo</tt> and <tt>xml-awk</tt> above for some ideas. It may well be that
+designing a usable <tt>xml-sed</tt> will first require some experience with
+developing these other commands.
+
+<p>
+<h2>Summary</h2>
+
+<p>
+I've asked in this essay whether it is possible to make the Unix shell
+XML aware, and I've sketched a possible answer that I've called
+<i>xml-coreutils</i>. 
+
+<p>
+One of the most important properties of the Unix shell is that it
+allows the combination of small modular programs through pipes and
+variable substitution. I've taken this and placed it at the heart of
+the conception of XML awareness. 
+
+<p>
+While the exact functionality of the various <i>xml-coreutils</i> commands is
+interesting as well, true power can only be gained by making sure that
+all these commands both work well together, and work well with the
+common Unix commands. This is accomplished here by having some
+<i>xml-coreutils</i> commands take (well formed) XML as input, and produce
+(well formed) XML as output, having other commands take XML as input
+and produce simple line and list oriented output, and having other
+commands take strings as input and create XML as output.
+
+<p>
+A Unix command line program, when viewed as a modular building block,
+has two standardized slots for input (the stream oriented STDIN, and
+the list of options strings, called ARGV) and two standardized slots
+for output (the STDOUT and STDERR streams). To make the <i>xml-coreutils</i>
+useful, each command must do the right thing in each slot. Like
+LEGO building blocks, any two compatible programs should be
+connectable on any of these slots.
+
+<p>
+The STDIN and STDOUT slots are suitable for either text oriented or
+XML oriented data.  The <i>coreutils</i> tools assume text oriented data, so
+there are commands which convert text to XML (e.g. <tt>xml-cat</tt>) and XML
+back to text (e.g. <tt>xml-strings</tt>). Since XML processing tends to require
+XML type input, text to XML conversion is the exception rather than
+the rule.
+
+<p>
+The ARGV slot is only naturally suitable for a list of strings. There are
+<tt>xml-commands</tt> which convert ARGV to XML (e.g. <tt>xml-echo</tt>) and XML to ARGV
+(e.g. <tt>xml-find</tt>).
+
+<p> The STDERR slot is nominally suitable for any type of text, but is
+only really intended for out of band diagnostic information. Such
+information tends to be small and is not usually part of the
+subsequent processing flow. The information is sometimes collected in
+log files containing the error output of several unrelated programs in
+random order. It therefore makes no sense for <tt>xml-commands</tt> to
+output XML data on STDERR. All <i>xml-coreutils</i> commands should
+output line oriented string data on STDERR.
+
+<p>
+I've chosen the <tt>xml-commands</tt> to mimic the Unix <i>coreutils</i> commands in
+functionality. There is no reason why other kinds of commands can't be
+invented, except that the <i>coreutils</i> are already proven and familiar.
+Other interesting commands might include an XML oriented replacement
+for less(1), and a tool for manipulating (small) XML documents using
+DOM semantics. A validator is useful too.
+
+<p>
+<h2>Other approaches</h2>
+
+<p>
+The <i>xml-coreutils</i> concept follows the Unix tradition of creating small
+single purpose tools. There have of course been other projects to fit
+XML processing into the Unix way of doing things. The projects below
+have evolved to fit various needs, and can be better or worse adapted
+to any given project.
+
+<p>
+The XML shell (XSH) project (<a href="http://xsh.sourceforge.net">xsh.sourceforge.net</a>) follows the
+complementary idea of extending the shell program itself to be XML
+aware. This is a powerful way of manipulating the DOM interactively,
+but has the disadvantage that operators must learn a new shell.
+
+<p>
+The XmlStarlet XML Shell Toolkit (<a href="http://xmlstar.sourceforge.net">xmlstar.sourceforge.net</a>) has the
+same goal as <i>xml-coreutils</i>, but implements a different cross section
+of commands. Commands output either text or XML as required, but it
+seems difficult to mix ordinary shell commands as part of the XML
+processing.
+
+<p>
+XMLTK (<a href="http://xmltk.sourceforge.net">xmltk.sourceforge.net</a>) is another set of command line utilities
+designed to perform simple operations on XML files. The emphasis is on
+fast and scalable streaming of documents, achieved in part by
+compressing and decompressing XML into binary data on the
+fly. Unfortunately, this is bad for interoperability, since it makes
+it impossible to casually insert third party filters into a pipeline,
+and requires other programs to learn to read the compressed binary format.
+
+<p>
+LT XML (<a href="http://www.ltg.ed.ac.uk/software/xml/">http://www.ltg.ed.ac.uk/software/xml/</a>) is both an XML parsing and manipulation library,
+and a set of command line tools developed using it. Like XmlStarlet,
+the tools cover a large number of operations. This toolkit has an emphasis
+on linguistic processing and SGML applications.
+
+<p>
+PYX format (see <a href="http://gnosis.cx/publish/programming/xml_matters_17.html">here</a>) is a simple line oriented text representation
+format. Rather than implementing XML aware programs, the idea is to
+convert the tree like form of an XML document into a list of PYX
+encoded lines, apply ordinary line oriented Unix filters, taking care
+to preserve PYX format, and re-encode the result into XML. While it is
+simple, this approach puts the burden of structural bookkeeping
+squarely on the operator.
+
+<p>
+Perl-XML (<a href="http://perl-xml.sourceforge.net/faq/">perl-xml.sourceforge.net</a>) is a collection of modules and add-ons for the Perl scripting
+language. This allows Perl scripts to handle XML in a very simple way,
+while taking advantage of the languague's other strengths.  However,
+Perl isn't ideal for connecting many small single purpose programs
+together, and is slightly awkward for routine interactive use in a
+shell. Similar remarks apply to other scripting languages.
+
+<p>
+XSLT is a powerful transformation language for XML documents, that can
+be used on the command line. Unfortunately, it only overlaps partially
+with the scope of XML awareness as described in this essay.
+
+<p>
+DOM and SAX are standardized APIs for reading and manipulating XML
+documents from programming languages. See the remarks regarding
+Perl-XML.
+
+<!--
+<p>
+<h2>Now what?</h2>
+
+<p>
+If you've read this far, and find these ideas compelling, you
+can help make them a reality. The homepage for the <tt>xml-coreutils</tt>
+project is http://xml-coreutils.sourceforge.net. The project is Free software
+licensed under the latest version of the GNU Public License (GPL).
+<p>
+Download the code, find bugs, submit fixes or just read the mailing
+list and offer suggestions.
+-->
+
+</body>
+</html>
