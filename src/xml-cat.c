@@ -288,6 +288,7 @@ int main(int argc, char **argv) {
 	break;
       }
       optind++;
+      inputfile = NULL;
       reset_parser(&parser);
     }
 

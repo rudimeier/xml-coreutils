@@ -30,6 +30,9 @@
 #include <sys/fcntl.h>
 #include <string.h>
 
+#include <stdio.h>
+#include <stdarg.h>
+
 typedef struct {
   flag_t flags;
   byte_t *buf;
@@ -151,6 +154,7 @@ bool_t squeeze_stdout(const byte_t *buf, size_t buflen) {
       if( xstdout.pos >= xstdout.buflen ) {
 	xstdout.pos = xstdout.buflen;
 	flush_stdout();
+	p = xstdout.buf + xstdout.pos;
       }
     } while( buflen > 0);
     return TRUE;
@@ -179,6 +183,36 @@ bool_t nputc_stdout(char_t c, size_t n) {
 bool_t backspace_stdout() {
   if( xstdout.pos > 0 ) {
     xstdout.pos--;
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/* this is suitable for size < buflen only, and causes a flush
+   if there isn't enough room in the buffer */
+bool_t nprintf_stdout(size_t size, const char_t *fmt, ...) {
+  va_list vap;
+  int n = size + 1;
+
+  /* we write directly into the buffer, so make room for size bytes */
+  if( xstdout.buf && fmt ) {
+    if( xstdout.pos + size > xstdout.buflen ) {
+      flush_stdout();
+    }
+    if( xstdout.pos + size > xstdout.buflen ) {
+      return FALSE;
+    }
+  }
+
+#if HAVE_VPRINTF
+  va_start(vap, fmt);
+  n = vsnprintf((char *)(xstdout.buf + xstdout.pos), size, fmt, vap);
+  va_end(vap);
+#else
+  write_stdout(fmt, MIN(size, strlen(fmt)));
+#endif
+  if( n <= size ) {
+    xstdout.pos += n;
     return TRUE;
   }
   return FALSE;

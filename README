@@ -1,0 +1,42 @@
+XML-COREUTILS README
+
+PURPOSE
+
+xml-coreutils is a set of command line utilities which mirror (where
+applicable) the GNU coreutils in functionality, while operating on XML
+documents. See the documents in the doc/ directory for a comprehensive
+explanation.
+
+LICENSE
+
+The xml-coreutils are distributed under the terms of the GNU General
+Public License (GPL) version 3 or later (at your option), which can be
+found in the file named COPYING.
+
+BUILDING
+
+The usual build instructions apply, e.g. from within the top level
+xml-coreutils directory (which contains the configure script), type
+
+./configure
+make
+make check
+make install
+
+You need root privileges for the last command, unless you chose a
+nonstandard installation prefix, e.g. with the command
+
+./configure --prefix=/home/username/local
+
+RUNNING
+
+The xml-coreutils each have a man page which explains usage, and
+there is also a section 7 man page for xml-coreutils, which incidentally
+lists all available commands.
+
+man xml-cat
+man 7 xml-coreutils
+
+AUTHOR
+
+Laird A. Breyer <laird@lbreyer.com>

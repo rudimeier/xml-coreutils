@@ -37,7 +37,7 @@ void debug_cursor(const cursor_t *cursor) {
 bool_t create_cursor(cursor_t *cursor) {
   if( cursor ) {
     cursor->top = 0;
-    return ( create_mem((byte_t **)&cursor->stack, &cursor->stacklen, 
+    return ( create_mem(&cursor->stack, &cursor->stacklen, 
 			sizeof(coff_t), CURSOR_MINSTACK) &&
 	    reset_cursor(cursor) );
   }
@@ -68,7 +68,7 @@ bool_t reset_cursor(cursor_t *cursor) {
 bool_t push_cursor(cursor_t *cursor, off_t offset, int ord, int nord) {
   if( cursor ) {
     if( cursor->top >= cursor->stacklen ) {
-      grow_mem((byte_t **)&cursor->stack, &cursor->stacklen, sizeof(coff_t), CURSOR_MINSTACK);
+      grow_mem(&cursor->stack, &cursor->stacklen, sizeof(coff_t), CURSOR_MINSTACK);
     }
     if( cursor->top < cursor->stacklen ) {
       /* we must not allow duplicates in the stack, or the parser
@@ -184,7 +184,7 @@ bool_t copy_cursor(cursor_t *dest, const cursor_t *src) {
     if( src->top >= dest->stacklen ) {
       n = CURSOR_MINSTACK;
       while( n < src->top ) { n *= 2; }
-      grow_mem((byte_t **)&dest->stack, &dest->stacklen, sizeof(coff_t), n);
+      grow_mem(&dest->stack, &dest->stacklen, sizeof(coff_t), n);
     }
     memcpy(dest->stack, src->stack, sizeof(coff_t) * src->top);
     dest->top = src->top;

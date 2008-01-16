@@ -108,12 +108,12 @@ void set_option(int op, char *optarg) {
 
 bool_t create_printf_args(printf_args_t *pargs) {
   pargs->count = 0;
-  return create_mem((byte_t **)&pargs->status, &pargs->max, sizeof(argstatus_t), 16);      
+  return create_mem(&pargs->status, &pargs->max, sizeof(argstatus_t), 16);      
 }
 
 void add_printf_args(printf_args_t *pargs, tempcollect_t *tc) {
   if( pargs->count >= pargs->max ) {
-    grow_mem((byte_t **)&pargs->status, &pargs->max, sizeof(argstatus_t), 16); 
+    grow_mem(&pargs->status, &pargs->max, sizeof(argstatus_t), 16); 
   }
   if( pargs->count < pargs->max ) {
     pargs->status[pargs->count].tc = tc;
@@ -147,7 +147,7 @@ bool_t find_printf_args(printf_args_t *pargs, const char_t *path, size_t *n) {
 
 bool_t free_printf_args(printf_args_t *pargs) {
   pargs->count = 0;
-  return free_mem((byte_t **)&pargs->status, &pargs->max);
+  return free_mem(&pargs->status, &pargs->max);
 }
 
 bool_t init_parserinfo_printf(parserinfo_printf_t *pinfo) {

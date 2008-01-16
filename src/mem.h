@@ -25,9 +25,9 @@
 #include "config.h"
 #endif
 
-bool_t grow_mem(byte_t **ptr, size_t *nmemb, size_t size, size_t minmemb);
-bool_t create_mem(byte_t **ptr, size_t *nmemb, size_t size, size_t minmemb);
-bool_t free_mem(byte_t **ptr, size_t *nmemb);
+bool_t grow_mem(void *pptr, size_t *nmemb, size_t size, size_t minmemb);
+bool_t create_mem(void *pptr, size_t *nmemb, size_t size, size_t minmemb);
+bool_t free_mem(void *pptr, size_t *nmemb);
 const char_t *find_unescaped_delimiter(const char_t *begin, const char_t *end, char_t delim, char_t esc);
 const char_t *find_delimiter(const char_t *begin, const char_t *end, char_t delim);
 const byte_t *find_byte(const byte_t *begin, const byte_t *end, byte_t delim);

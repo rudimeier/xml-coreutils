@@ -26,7 +26,7 @@
 
 bool_t create_xpath(xpath_t *xp) {
   if( xp ) {
-    return create_mem((byte_t **)&xp->path, &xp->pathlen, sizeof(char_t), 64);
+    return create_mem(&xp->path, &xp->pathlen, sizeof(char_t), 64);
   }
   return FALSE;
 }
@@ -57,7 +57,7 @@ bool_t push_tag_xpath(xpath_t *xp, const char_t *tagname) {
   if( xp && tagname ) {
     l = strlen(tagname) + strlen(delim) + strlen(xp->path) + 1;
     while( l > xp->pathlen ) {
-      if( !grow_mem((byte_t **)&xp->path, &xp->pathlen, sizeof(char_t), 64) ) {
+      if( !grow_mem(&xp->path, &xp->pathlen, sizeof(char_t), 64) ) {
 	return FALSE;
       }
     }
@@ -104,7 +104,7 @@ bool_t push_predicate_xpath(xpath_t *xp, const char_t *pred) {
   if( xp && pred ) {
     l = strlen(pred) + strlen(delim1) + strlen(delim2) + strlen(xp->path) + 1;
     while( l > xp->pathlen ) {
-      if( !grow_mem((byte_t **)&xp->path, &xp->pathlen, sizeof(char_t), 64) ) {
+      if( !grow_mem(&xp->path, &xp->pathlen, sizeof(char_t), 64) ) {
 	return FALSE;
       }
     }
@@ -132,7 +132,7 @@ bool_t write_xpath(xpath_t *xp, const char_t *path, size_t pathlen) {
     l = strlen(xp->path);
     m = l + pathlen + 1;
     while( l > xp->pathlen ) {
-      if( !grow_mem((byte_t **)&xp->path, &xp->pathlen, sizeof(char_t), 64) ) {
+      if( !grow_mem(&xp->path, &xp->pathlen, sizeof(char_t), 64) ) {
 	return FALSE;
       }
     }
@@ -313,6 +313,19 @@ bool_t normalize_xpath(xpath_t *xp) {
       }
     } while( op );
     return TRUE;
+  }
+  return FALSE;
+}
+
+/* true if path is a prefix of xp->path 
+ * also works if path ends in slash .
+ */ 
+bool_t cmp_prefix_xpath(xpath_t *xp, const char_t *path) {
+  const char_t *p;
+  if( xp ) {
+    p = xp->path;
+    while( *p && (*p == *path) ) { p++; path++; }
+    return ((*path == '\0') || ((path[0] == '/') && (path[1] == '\0'))) ;
   }
   return FALSE;
 }

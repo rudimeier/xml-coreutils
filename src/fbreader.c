@@ -93,13 +93,26 @@ bool_t read_fileblockreader(fbreader_t *fbr, off_t offset, byte_t **begin, byte_
       if( !insert_block_blockmanager(&fbr->bm, block) ) {
 	return FALSE;
       }
+/*       debug("READING BLOCK %d\n", blockid); */
     } 
     if( get_buffer_blockmanager(&fbr->bm, block, &buf, &buflen) ) {
       *begin = buf + MIN(offset % fbr->blksize, block->bytecount);
       *end = buf + block->bytecount;
-/* 	printf("got begin = %p end = %p\n", *begin, *end); */
       return TRUE;
     }
   } 
+  return FALSE;
+}
+
+bool_t touch_fileblockreader(fbreader_t *fbr, off_t offset) {
+  int blockid;
+  block_t *block;
+  if( fbr && (offset >= 0) ) {
+    blockid = offset / fbr->blksize;
+    if( find_block_blockmanager(&fbr->bm, blockid, &block) ) {
+      block->touch++;
+      return TRUE;
+    }
+  }
   return FALSE;
 }

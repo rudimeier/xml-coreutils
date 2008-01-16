@@ -25,12 +25,15 @@
 #include "config.h"
 #endif
 
+#include <stdio.h>
+
 typedef struct {
   const char_t *name;
   byte_t *buf;
   size_t bufpos;
   size_t buflen;
   size_t max_buflen;
+  FILE *tempfile;
 } tempcollect_t;
 
 typedef struct {
@@ -44,6 +47,11 @@ bool_t create_tempcollect(tempcollect_t *tc, const char_t *name,
 bool_t free_tempcollect(tempcollect_t *tc);
 bool_t reset_tempcollect(tempcollect_t *tc);
 bool_t write_tempcollect(tempcollect_t *tc, const byte_t *buf, size_t buflen);
+bool_t open_file_tempcollect(tempcollect_t *tc);
+bool_t flush_file_tempcollect(tempcollect_t *tc);
+bool_t load_file_tempcollect(tempcollect_t *tc);
+bool_t close_file_tempcollect(tempcollect_t *tc);
+
 bool_t write_stdout_tempcollect(tempcollect_t *tc);
 bool_t squeeze_stdout_tempcollect(tempcollect_t *tc);
 bool_t read_tempcollect(tempcollect_t *tc, byte_t *buf, size_t buflen);

@@ -1,6 +1,12 @@
 xml-coreutils NEWS -- history of user visible changes
 Copyright (C) 2006 Laird Breyer.
 
+xml-coreutils 0.7
+
+This release fixes some bugs, and adds the xml-strings, xml-ls and
+xml-find commands (0.4 + 3*0.1 = 0.7). These commands don't have any
+options yet, they're just wrappers :)
+
 xml-coreutils 0.4
 
 This is the initial release, which has functioning initial versions of

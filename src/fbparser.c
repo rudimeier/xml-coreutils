@@ -231,12 +231,14 @@ bool_t parse_just_cursor_fileblockparser(fbparser_t *fbp, const cursor_t *cursor
 	    !parse_next_fileblockparser(fbp, pos) ) {
 	  return FALSE;
 	}
+	touch_fileblockreader(&fbp->reader, fbp->info.offset);
       }
     }
 
     setup_fileblockparser(fbp, callbacks);
     pos->offset = get_top_offset_cursor(cursor);
     pos->nodecount = get_top_nord_cursor(cursor);
+    touch_fileblockreader(&fbp->reader, fbp->info.offset);
 
     return parse_next_fileblockparser(fbp, pos);
 
@@ -302,7 +304,6 @@ bool_t parse_next_fileblockparser(fbparser_t *fbp, position_t *pos) {
 
       pos->offset = fbp->info.offset;
       pos->nodecount = fbp->info.nodecount;
-
     }
 
   }

@@ -27,7 +27,7 @@
 bool_t create_stringlist(stringlist_t *sl) {
   if( sl ) {
     sl->num = 0;
-    return grow_mem((byte_t **)&sl->list, &sl->max, sizeof(char_t *), 16);
+    return grow_mem(&sl->list, &sl->max, sizeof(char_t *), 16);
   }
   return FALSE;
 }
@@ -36,7 +36,7 @@ bool_t free_stringlist(stringlist_t *sl) {
   if( sl ) {
     if( sl->list ) {
       reset_stringlist(sl);
-      free_mem((byte_t **)&sl->list, &sl->max);
+      free_mem(&sl->list, &sl->max);
     }
   }
   return FALSE;
@@ -61,7 +61,7 @@ const char_t *get_stringlist(stringlist_t *sl, size_t n) {
 bool_t add_stringlist(stringlist_t *sl, const char_t *name) {
   if( sl ) {
     if( sl->num >= sl->max ) {
-      grow_mem((byte_t **)&sl->list, &sl->max, sizeof(char_t *), 16);
+      grow_mem(&sl->list, &sl->max, sizeof(char_t *), 16);
     }
     if( sl->num < sl->max ) {
       sl->list[sl->num] = strdup(name);

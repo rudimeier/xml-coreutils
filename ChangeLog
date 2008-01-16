@@ -1,0 +1,8 @@
+xml-coreutils 0.7:
+	* fix buffer overflow in squeeze_stdout.
+	* tempcollect now flushes to disk when full.
+	* rudimentary test scripts for make check.
+	* new commands xml-strings, xml-ls, xml-find.
+	* changed mem.h api to fix C99 style type-punning warnings.
+xml-coreutils 0.4:
+        * initial release.	

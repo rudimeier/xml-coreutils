@@ -22,7 +22,8 @@
 #include "mem.h"
 #include <string.h>
 
-bool_t grow_mem(byte_t **ptr, size_t *nmemb, size_t size, size_t minmemb) {
+bool_t grow_mem(void *pptr, size_t *nmemb, size_t size, size_t minmemb) {
+  byte_t **ptr = (byte_t **)pptr;
   byte_t *p;
   if( ptr && nmemb ) {
     if( !*ptr ) {
@@ -42,16 +43,18 @@ bool_t grow_mem(byte_t **ptr, size_t *nmemb, size_t size, size_t minmemb) {
   return FALSE;
 }
 
-bool_t create_mem(byte_t **ptr, size_t *nmemb, size_t size, size_t min) {
+bool_t create_mem(void *pptr, size_t *nmemb, size_t size, size_t min) {
+  byte_t **ptr = (byte_t **)pptr;
   if( ptr && nmemb ) {
     *ptr = NULL;
     *nmemb = 0;
-    return grow_mem((byte_t **)ptr, nmemb, size, min);
+    return grow_mem(ptr, nmemb, size, min);
   }
   return FALSE;
 }
 
-bool_t free_mem(byte_t **ptr, size_t *nmemb) {
+bool_t free_mem(void *pptr, size_t *nmemb) {
+  byte_t **ptr = (byte_t **)pptr;
   if( ptr && *ptr && nmemb ) {
     free(*ptr);
     *ptr = NULL;

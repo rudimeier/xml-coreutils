@@ -83,12 +83,10 @@ bool_t forward_skip(skip_t *skip, cursor_t *cursor, fbparser_t *fbp) {
     memset(&callbacks, 0, sizeof(fbcallback_t));
     callbacks.node = node_forward_skip;
     callbacks.user = (void *)&fw;
-
     if( parse_first_fileblockparser(fbp, cursor, NULL, &pos) ) {
 
       setup_fileblockparser(fbp, &callbacks);
       while( !fw.done && parse_next_fileblockparser(fbp, &pos) );
-
       return fw.done;
     }
   }

@@ -27,7 +27,7 @@
 bool_t create_attlist(attlist_t *alist) {
   if( alist ) {
     alist->count = 0;
-    return ( create_mem((byte_t **)&alist->list, &alist->max_count, 
+    return ( create_mem(&alist->list, &alist->max_count, 
 			sizeof(attribute_t), 16) &&
 	     reset_attlist(alist) );
   }
@@ -70,7 +70,7 @@ bool_t append_attlist(attlist_t *alist, const char_t **att) {
 bool_t push_attlist(attlist_t *alist, const char_t *name, const char_t *value) {
   if( alist ) {
     if( alist->count >= alist->max_count ) {
-      grow_mem((byte_t **)&alist->list, &alist->max_count, sizeof(attribute_t), 16);
+      grow_mem(&alist->list, &alist->max_count, sizeof(attribute_t), 16);
     }
     if( alist->count < alist->max_count ) {
       alist->list[alist->count].name = name;

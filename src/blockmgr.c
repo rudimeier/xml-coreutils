@@ -28,7 +28,7 @@ bool_t create_blockmanager(blockmanager_t *bm, size_t blocksize, size_t maxblock
   if( bm ) {
     bm->blocksize = blocksize;
     bm->maxblocks = maxblocks;
-    if( create_mem((byte_t **)&bm->blocks, &bm->numblocks, sizeof(block_t), 8) &&
+    if( create_mem(&bm->blocks, &bm->numblocks, sizeof(block_t), 8) &&
 	create_mem(&bm->data, &bm->numdata, bm->blocksize, 8) ) {
 
       bm->root = NULL;
@@ -51,32 +51,40 @@ bool_t reset_blockmanager(blockmanager_t *bm) {
 bool_t free_blockmanager(blockmanager_t *bm) {
   if( bm ) {
     free_mem(&bm->data, &bm->numdata);
-    free_mem((byte_t **)&bm->blocks, &bm->numblocks);
+    free_mem(&bm->blocks, &bm->numblocks);
     return TRUE;
   }
   return FALSE;
 }
 
 bool_t create_block_blockmanager(blockmanager_t *bm, block_t **result) {
-  size_t i;
+  size_t i, d;
   block_t *p;
   if( bm && result) {
     /* first try to grow */
     if( (bm->count >= bm->numblocks) && (bm->numblocks < bm->maxblocks) ) {
       grow_mem(&bm->data, &bm->numdata, bm->blocksize, 8);
-      grow_mem((byte_t **)&bm->blocks, &bm->numblocks, sizeof(block_t), 8);
+      grow_mem(&bm->blocks, &bm->numblocks, sizeof(block_t), 8);
     }
-    /* now replace least useful block */
+    /* now replace least useful block.
+       least useful = smallest touch count. 
+       never replace blocks[0] which contains blockid=0. */
     if( bm->count >= bm->numblocks ) {
-      p = &bm->blocks[0];
-      for(i = 1; i < bm->count; i++) {
-	if( p->touch >= bm->blocks[i].touch ) {
+      p = &bm->blocks[1]; 
+      for(i = 2; i < bm->count; i++) {
+	d = bm->blocks[i].touch - p->touch;
+	if( d < 0 ) {
+/* 	  p = ((d < 0) || (rand() > RAND_MAX/2)) ? &bm->blocks[i] : p; */
 	  p = &bm->blocks[i];
 	}
       }
-      memset(p, 0, sizeof(block_t));
-      *result = p;
-      return TRUE;
+      if( remove_block_blockmanager(bm, p) ) {
+/* 	debug("(-> %d) ", p->blockid); */
+	memset(p, 0, sizeof(block_t));
+	*result = p;
+	return TRUE;
+      }
+      return FALSE;
     } 
     /* create a new block */
     p = &bm->blocks[bm->count];
@@ -88,16 +96,16 @@ bool_t create_block_blockmanager(blockmanager_t *bm, block_t **result) {
   return FALSE;
 }
 
-bool_t insert_block_blockmanager(blockmanager_t *bm, block_t *i) {
+bool_t insert_block_blockmanager(blockmanager_t *bm, const block_t *i) {
   block_t *p;
   if( bm && i ) {
     p = bm->root;
     if( !p ) {
-      bm->root = i;
+      bm->root = (block_t *)i;
     } else {
       while( p ) {
 	if( p->blockid == i->blockid ) {
-	  /* this should never happen */
+	  /* this should never happen (user error) */
 	  p->touch++;
 	  return FALSE;
 	}
@@ -105,20 +113,60 @@ bool_t insert_block_blockmanager(blockmanager_t *bm, block_t *i) {
 	  if( p->left ) {
 	    p = p->left;
 	  } else {
-	    p->left = i;
+	    p->left = (block_t *)i;
 	    break;
 	  }
 	} else {
 	  if( p->right ) {
 	    p = p->right; 
 	  } else {
-	    p->right = i;
+	    p->right = (block_t *)i;
 	    break;
 	  }
 	}
       }
     }
     return TRUE;
+  } 
+  return FALSE;
+}
+
+bool_t unlink_subtree_blockmanager(blockmanager_t *bm, const block_t *p) {
+  block_t *q;
+  /* first remove link from parent, then reinsert left and right children */
+  q = bm->root;
+  if( q == p ) {
+    bm->root = NULL;
+    return TRUE;
+  } else {
+    while( q ) {
+      /* q is never equal to p */
+      if( q->blockid > p->blockid ) {
+	if( q->left == p ) {
+	  q->left = NULL;
+	  return TRUE;
+	} else {
+	  q = q->left;
+	}
+      } else {
+	if( q->right == p ) {
+	  q->right = NULL;
+	  return TRUE;
+	} else {
+	  q = q->right;
+	}
+      }
+    }
+  }
+  return FALSE;
+}
+
+bool_t remove_block_blockmanager(blockmanager_t *bm, const block_t *p) {
+  if( bm && p ) {
+    if( unlink_subtree_blockmanager(bm, p) ) {
+      return (p->left ? insert_block_blockmanager(bm, p->left) : TRUE) &&
+	(p->right ? insert_block_blockmanager(bm, p->right) : TRUE);
+    }
   }
   return FALSE;
 }

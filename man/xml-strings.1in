@@ -1,0 +1,39 @@
+\" t
+.TH XML-STRINGS 1 "xml-coreutils" "Version @VERSION@" ""
+.SH NAME
+xml-strings \- display strings of an XML file on the standard output
+.SH SYNOPSIS
+.HP
+.B xml-strings
+[OPTION] [FILE]...
+.SH DESCRIPTION
+.PP
+.B xml-strings
+prints the strings stored inside one or more XML files on standard output.
+The exact behaviour depends on the switches given, but by default all the
+tags are stripped and only chardata is printed. If no FILE(s) are given,
+.B xml-strings
+reads standard input.
+.SH EXAMPLES
+.PP
+xml-echo "hello" | xml-strings
+.IP
+This outputs "hello".
+.SH SOURCE
+.PP
+The source code for the latest version of this program is available at the
+following locations: 
+.PP
+.na
+http://www.lbreyer.com/gpl.html
+.br
+http://dbacl.sourceforge.net
+.ad
+.SH BUGS
+.PP
+.SH AUTHOR
+.PP
+Laird A. Breyer <laird@lbreyer.com>
+.SH SEE ALSO
+.PP
+.BR xml-coreutils (7)

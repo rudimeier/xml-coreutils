@@ -1,5 +1,7 @@
 AUTOMAKE_OPTIONS = 1.4 gnits
 ACLOCAL = -I config
+datarootdir ?= $(prefix)/share
+
 
 AUX_DIST = config/config.guess \
 	config/config.sub \

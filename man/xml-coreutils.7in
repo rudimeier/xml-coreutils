@@ -9,6 +9,11 @@ is a collection of shell commands similar to the traditional
 .B coreutils
 shipped on many Unix systems.
 .PP
+While the current version of
+.B xml-coreutils
+is likely to have evolved somwhat from its initial design, the core ideas
+are described in detail in the following essay:
+.IP @PKGDATADIR@/doc/unix_xml.html
 .SH SOURCE
 .PP
 The source code for the latest version of xml-coreutils is available at the
@@ -32,3 +37,6 @@ Laird A. Breyer <laird@lbreyer.com>
 .BR xml-echo (1)
 .BR xml-printf (1)
 .BR xml-less (1)
+.BR xml-strings (1)
+.BR xml-ls (1)
+.BR xml-find (1)

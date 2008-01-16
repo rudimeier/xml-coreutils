@@ -37,6 +37,6 @@ typedef struct {
 bool_t open_fileblockreader(fbreader_t *fbr, const char *path, size_t maxblocks);
 bool_t close_fileblockreader(fbreader_t *fbr);
 bool_t read_fileblockreader(fbreader_t *fbr, off_t offset, byte_t **begin, byte_t **end);
-
+bool_t touch_fileblockreader(fbreader_t *fbr, off_t offset);
 #endif
  

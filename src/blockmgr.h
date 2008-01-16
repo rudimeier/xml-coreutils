@@ -48,7 +48,9 @@ bool_t create_blockmanager(blockmanager_t *bm, size_t blocksize, size_t maxblock
 bool_t reset_blockmanager(blockmanager_t *bm);
 bool_t free_blockmanager(blockmanager_t *bm);
 bool_t create_block_blockmanager(blockmanager_t *bm, block_t **result);
-bool_t insert_block_blockmanager(blockmanager_t *bm, block_t *i);
+bool_t insert_block_blockmanager(blockmanager_t *bm, const block_t *i);
+bool_t remove_block_blockmanager(blockmanager_t *bm, const block_t *p);
+bool_t unlink_subtree_blockmanager(blockmanager_t *bm, const block_t *p);
 bool_t find_block_blockmanager(blockmanager_t *bm, int blockid, block_t **result);
 bool_t get_buffer_blockmanager(blockmanager_t *bm, block_t *b, byte_t **buf, size_t *len);
 

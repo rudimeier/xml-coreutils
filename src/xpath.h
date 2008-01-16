@@ -80,5 +80,6 @@ tagtype_t identify_element_xpath(const char_t *begin, const char_t *end);
 const char_t *get_last_xpath(xpath_t *xp);
 const char_t *get_full_xpath(xpath_t *xp);
 bool_t iterate_xpath(xpath_t *xp, iterator_xpath_fun *f, void *user);
+bool_t cmp_prefix_xpath(xpath_t *xp, const char_t *path);
 
 #endif

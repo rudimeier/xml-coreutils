@@ -81,7 +81,7 @@ xml-cat [OPTION] [FILE]...
 
 * It is designed to operate in a similar way to cat.
 
-* Like cat, it must be idemotent, so that xml-cat FILE | xml-cat is
+* Like cat, it must be idempotent, so that xml-cat FILE | xml-cat is
   equivalent to xml-cat FILE alone.
 
 * If some or all of the FILE arguments do not contain XML documents,
@@ -189,7 +189,7 @@ for now to develop it as a support tool for viewing and debugging.
 
 The ultimate aim is to develop a viewer which can efficiently cope with
 an XML file of unlimited size. This rules out most DOM based viewers. The
-secondeary aim is to have a viewer which can be easily customized for 
+secondary aim is to have a viewer which can be easily customized for 
 debugging and inspecting the output of xml-coreutils.
 
 * xml-less mimics less, and must be able to cope efficiently with
@@ -197,3 +197,50 @@ debugging and inspecting the output of xml-coreutils.
 
 * xml-less can rearrange and colorize the document for viewing in
   several ways, but doesn't interpret the XML. It is not a web browser.
+
+XML-STRINGS (xml-x2u)
+
+This command has the signature
+
+xml-strings [OPTION] [[FILE]:[XPATH]]...
+
+* It is designed to operate in a similar way to strings.
+
+* The default behaviour extracts the chardata only.
+
+* There are (will be) switches to extract virtually any type of 
+  string data.
+
+* Output is not pretty printed, but can be organized depending on
+  switches.
+
+XML-LS (xml-x2x)
+
+This command has the signature
+
+xml-ls [OPTION] [[FILE]:[XPATH]]...
+
+* It is intended to operate on the XML hierarchy like ls operates
+  on the directory hierarchy.
+
+* By default, ls prints the names of directories (which contain
+  directories and files) and files (which contain data). The XML
+  equivalent of a directory is a tag. The equivalent of data is a
+  string. We can refer to the tag by its name. There is no name
+  for XML data, but we can print the first few words of it as a kind
+  of "file preview".
+
+* Unlike hierarchical filesystems, tags can have identical names, so
+  there should(?) be a simple way to disambiguate them in the listing.
+  Ideally, this should be easy to convert into an XPath to access the node.
+
+XML-FIND (xml-x2u)
+
+This command has the signature
+
+xml-find [OPTION] [FILE][:XPATH] [EXPRESSION]
+
+* It operates more or less like find, but if no file is given,
+  operates on stdin.
+
+* The default EXPRESSION is to print the node paths encountered.

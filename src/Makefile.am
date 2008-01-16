@@ -1,5 +1,7 @@
 # note . occurs before tests
 SUBDIRS = . tests
+datarootdir ?= $(prefix)/share
+
 
 AM_CFLAGS = -funsigned-char -Wall -pedantic -O3
 
@@ -20,8 +22,10 @@ CURSOR = cursor.h cursor.c cursormgr.h cursormgr.c skip.h skip.c cursorrep.h cur
 ATTRIBUTES = attributes.h attributes.c
 LESSUI = lessui.h lessui.c lessdisp.h lessdisp.c lessrend.h lessrend.c
 HASH = jenkins.c
+STDPARSE = stdparse.h stdparse.c
 
-bin_PROGRAMS = xml-cat xml-printf xml-echo xml-less
+bin_PROGRAMS = xml-cat xml-printf xml-echo xml-less xml-strings xml-ls \
+	xml-find
 xml_cat_SOURCES = xml-cat.c $(COMMON) $(PARSER) $(IO) $(STDOUT) $(WRAP)
 
 xml_printf_SOURCES = xml-printf.c $(COMMON) $(PARSER) $(IO) $(STDOUT) $(XPATH) $(XMATCH) $(MEM) $(COLLECT) $(STRING) $(FORMAT) 
@@ -30,5 +34,11 @@ xml_echo_SOURCES = xml-echo.c $(COMMON) $(WRAP) $(IO) $(STDOUT) $(FORMAT) $(XPAT
 
 xml_less_SOURCES = xml-less.c $(COMMON) $(IO) $(MEM) $(BLOCKS) $(STDOUT) $(CURSOR) $(PARSER) $(LESSUI) $(ENTITIES) $(ATTRIBUTES) $(HASH) $(XPATH)
 xml_less_LDADD = -lslang
+
+xml_strings_SOURCES = xml-strings.c $(COMMON) $(PARSER) $(IO) $(STDOUT) $(STDPARSE) $(XPATH) $(MEM)
+
+xml_ls_SOURCES = xml-ls.c $(COMMON) $(PARSER) $(IO) $(STDOUT) $(STDPARSE) $(WRAP) $(XPATH) $(MEM) $(ENTITIES)
+
+xml_find_SOURCES = xml-find.c $(COMMON) $(PARSER) $(IO) $(STDOUT) $(STDPARSE) $(XPATH) $(MEM)
 
 check_PROGRAMS = 
