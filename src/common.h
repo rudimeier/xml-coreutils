@@ -3,7 +3,7 @@
  *  
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
  * 
  * This program is distributed in the hope that it will be useful,
@@ -68,6 +68,6 @@ unsigned long int hash(unsigned char *k,
 #define COPYBLURB " (xml-coreutils version " VERSION  ")\n" \
                   "Copyright (c) 2006 L.A. Breyer. All rights reserved.\n" \
                   "This is free software, It comes with NO WARRANTY, and is licensed\n" \
-                  "to you under the terms of the GNU General Public License Version 2 or later.\n"
+                  "to you under the terms of the GNU General Public License Version 3 or later.\n"
 
 #endif
