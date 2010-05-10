@@ -1,11 +1,12 @@
 \" t
 .TH XML-CAT 1 "xml-coreutils" "Version @VERSION@" ""
 .SH NAME
-xml-cat \- concatenate XML files and print on the standard output
+xml-cat \- concatenate XML files and print XML on the standard output.
 .SH SYNOPSIS
 .HP
-.B xml-cat
-[OPTION] [FILE]...
+.B xml-cat 
+.RI [ OPTION ]...
+.RI [ FILE ]...
 .SH DESCRIPTION
 .PP
 .B xml-cat
@@ -17,26 +18,43 @@ reads standard input.
 Each input file may contain several XML documents interspersed with plain text.
 The plain text is ignored, and the XML documents are concatenated. If none
 of the input contains XML, nothing is printed.
-.SH EXAMPLES
 .PP
-echo "hello" | xml-cat 
-.IP
-This outputs nothing since "hello" isn't XML.
-.SH SOURCE
-.PP
-The source code for the latest version of this program is available at the
+The root tag of each input document is renamed "root" on output.
+.SH OPTIONS
+.SH EXIT STATUS
+xml-cat returns 0 on success, or 1 otherwise.
+.SH EXAMPLE
+.P
+Display an XML file:
+.EX
+xml-cat recipe.xml
+.EE
+.P
+Combine several files:
+.EX
+xml-cat monday.rss tuesday.rss wednesday.rss > all.xml
+.EE
+.P
+The following outputs nothing since "hello" isn't XML:
+.EX
+% echo "hello" | xml-cat 
+.EE
+.SH AUTHORS
+.P
+.MT laird@lbreyer.com
+Laird A. Breyer
+.ME
+is the original author of this software.
+The source code (GPLv3 or later) for the latest version is available at the
 following locations: 
 .PP
-.na
-http://www.lbreyer.com/gpl.html
+.na 
+.UR http://www.lbreyer.com/gpl.html
+.UE
 .br
-http://dbacl.sourceforge.net
+.UR http://xml-coreutils.sourceforge.net
+.UE
 .ad
-.SH BUGS
-.PP
-.SH AUTHOR
-.PP
-Laird A. Breyer <laird@lbreyer.com>
 .SH SEE ALSO
 .PP
 .BR xml-coreutils (7)

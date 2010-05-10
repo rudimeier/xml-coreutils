@@ -1,0 +1,18 @@
+_PURPOSE_
+xml-strings prints attribute values.
+_INPUT_ 
+<?xml version="1.0"?>
+<root>
+	<abc z="x">xyz1</abc>
+	<abc t="y">xyz2</abc>
+	<abc>xyz3</abc>
+	<abc>xyz4</abc>
+	<abc>xyz5</abc>
+</root>
+_COMMAND_
+xml-strings ://abc@z
+_EXITCODE_
+0
+_OUTPUT_
+x
+_END_

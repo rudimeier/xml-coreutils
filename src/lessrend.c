@@ -32,6 +32,10 @@ bool_t create_renderer(renderer_t *r, display_t *disp) {
     r->num_rows = disp->num_rows;
     r->num_cols = disp->num_cols;
     r->pivot = disp->pivot;
+    r->last_col = disp->num_cols;
+    if( disp->colour_scheme >= DISPLAY_COLOUR_SCHEMES ) {
+      setflag(&r->flags, RENDERER_AUTO_TAG_COLOURS);
+    }
     return TRUE;
   }
   return FALSE;
@@ -49,6 +53,8 @@ bool_t reset_renderer(renderer_t *r) {
     r->byteoffset = 0;
     r->bytesize = 0;
     r->margin = 0;
+    r->last_col = r->num_cols;
+    r->tabsize = 4;
     reset_attlist(&r->alist);
     return TRUE;
   }
@@ -109,6 +115,7 @@ bool_t end_screen_renderer(renderer_t *r) {
 bool_t start_line_renderer(renderer_t *r) {
   if( r && !checkflag(r->flags, RENDERER_DONE) ) {
     if( r->col > 0 ) {
+      erase_eos_renderer(r); /* prev line */
       /* assume line has already been filled, so open next line */
       if( r->col < r->num_cols ) {
 	SLsmg_gotorc(r->row, r->col);
@@ -160,7 +167,8 @@ bool_t set_offsets_renderer(renderer_t *r, off_t off, int nord) {
 bool_t set_indent_renderer(renderer_t *r, int n) {
   if( r && !checkflag(r->flags, RENDERER_DONE) ) {
     if( n >= 0 ) {
-      r->indent = r->margin + MIN(n, r->num_cols - r->margin);
+      /* r->indent = r->margin + MIN(n, r->num_cols - r->margin); */
+      r->indent = r->margin + r->tabsize * n;
     }
     return update_renderer(r);
   }
@@ -246,8 +254,8 @@ bool_t write_repeat_renderer(renderer_t *r, int count, char_t c, colour_t l) {
 
 bool_t write_linecut_renderer(renderer_t *r, const char_t *begin, const char_t *end) {
   int n;
-  if( r && (r->col < r->num_cols) ) {
-    n = MIN(r->num_cols - r->col, end - begin);
+  if( r && (r->col < r->last_col) ) {
+    n = MIN(r->last_col - r->col, end - begin);
     SLsmg_write_nchars((char *)begin, n);
     r->col += n;
     return update_renderer(r);
@@ -279,7 +287,7 @@ bool_t write_wordwrap_renderer(renderer_t *r, const char_t *begin, const char_t 
   if( r ) {
     while( (begin < end) && !checkflag(r->flags, RENDERER_DONE) ) {
       n = MIN(r->num_cols - r->col, end - begin);
-      s = rfind_xml_whitespace(begin, begin + n);
+      s = rskip_xml_whitespace(begin, begin + n);
       if( s > begin ) {
 	n = s - begin;
       }
@@ -357,7 +365,7 @@ bool_t write_squeeze_renderer(renderer_t *r, const char_t *begin, const char_t *
 
 bool_t set_autocolour_renderer(renderer_t *r, const char_t *s) {
   int c;
-  if( r && s ) {
+  if( r && s && checkflag(r->flags, RENDERER_AUTO_TAG_COLOURS) ) {
     c = hash((unsigned char *)s, strlen(s), 0) & ((1<<DISPLAY_AUTO_BITS)-1);
     return set_raw_colour_renderer(r, c_last + c);
   }

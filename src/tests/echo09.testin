@@ -1,0 +1,20 @@
+_PURPOSE_
+xml-echo dot path tests.
+_INPUT_ 
+_COMMAND_
+xml-echo -e 'abc[.]def[x]ghi[.]jkl'
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<root>
+	abc
+	def
+	<x>
+		ghi
+	</x>
+	<x>
+		jkl
+	</x>
+</root>
+_END_

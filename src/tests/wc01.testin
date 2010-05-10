@@ -1,0 +1,15 @@
+_PURPOSE_
+xml-wc general XML statistics (height, depth, tags).
+_INPUT_ 
+<?xml version="1.0"?>
+<a>abc def
+	<b>abc</b>
+	<b>def</b>
+</a>
+_COMMAND_
+xml-wc | tr ' ' '_'
+_EXITCODE_
+0
+_OUTPUT_
+______2_______2_______3_stdin_:/
+_END_

@@ -21,13 +21,14 @@
 #include "common.h"
 #include "stringlist.h"
 #include "mem.h"
-#include "error.h"
+#include "myerror.h"
 #include <string.h>
 
 bool_t create_stringlist(stringlist_t *sl) {
   if( sl ) {
     sl->num = 0;
-    return grow_mem(&sl->list, &sl->max, sizeof(char_t *), 16);
+    sl->flags = 0;
+    return create_mem(&sl->list, &sl->max, sizeof(char_t *), 16);
   }
   return FALSE;
 }
@@ -43,10 +44,12 @@ bool_t free_stringlist(stringlist_t *sl) {
 }
 
 bool_t reset_stringlist(stringlist_t *sl) {
-  size_t i;
+  int i;
   if( sl ) {
-    for(i = 0; i < sl->num; i++) {
-      free(sl->list[i]);
+    if( !checkflag(sl->flags,STRINGLIST_DONTFREE) ) {
+      for(i = 0; i < sl->num; i++) {
+	if( sl->list[i] ) { free((void *)sl->list[i]); }
+      }
     }
     sl->num = 0;
     return TRUE;
@@ -54,33 +57,85 @@ bool_t reset_stringlist(stringlist_t *sl) {
   return FALSE;
 }
 
-const char_t *get_stringlist(stringlist_t *sl, size_t n) {
-  return (sl && (n < sl->num)) ? sl->list[n] : NULL;
+/* this command interferes with argv_stringlist() */
+bool_t strikeout_stringlist(stringlist_t *sl, const char_t *name) {
+  bool_t ok = FALSE;
+  int i;
+  if( sl ) {
+    for(i = 0; i < sl->num; i++) {
+      if( sl->list[i] && (strcmp(name, sl->list[i]) == 0) ) {
+	/* keep this as is */
+	name = sl->list[i];
+	sl->list[i] = NULL;
+	if( !checkflag(sl->flags,STRINGLIST_DONTFREE) ) {
+	  free((void *)name);
+	}
+	ok = TRUE;
+      }
+    }
+    return ok;
+  }
+  return FALSE;
 }
 
-bool_t add_stringlist(stringlist_t *sl, const char_t *name) {
+const char_t *get_stringlist(const stringlist_t *sl, int n) {
+  return (sl && (0 <= n) && (n < sl->num)) ? sl->list[n] : NULL;
+}
+
+int find_stringlist(const stringlist_t *sl, const char_t *s) {
+  int i;
+  if( sl && s ) {
+    for(i = 0; i < sl->num; i++) {
+      if( sl->list[i] && (strcmp(sl->list[i], s) == 0) ) {
+	return i;
+      }
+    }
+  }
+  return -1;
+}
+
+/* can add name = NULL, but causes problems with argv_stringlist */
+bool_t add_stringlist(stringlist_t *sl, const char_t *name, flag_t flags) {
   if( sl ) {
     if( sl->num >= sl->max ) {
       grow_mem(&sl->list, &sl->max, sizeof(char_t *), 16);
     }
     if( sl->num < sl->max ) {
-      sl->list[sl->num] = strdup(name);
-      sl->num++;
-      return TRUE;
+      if( sl->flags == 0 ) { setflag(&sl->flags,flags); }
+      if( sl->flags == flags ) {
+	sl->list[sl->num] = (checkflag(sl->flags,STRINGLIST_STRDUP) ? 
+			     (name ? strdup(name) : NULL) : (char_t *)name);
+	sl->num++;
+	return TRUE;
+      }
     }
   }
   return FALSE;
 }
 
-bool_t add_unique_stringlist(stringlist_t *sl, const char_t *name) {
-  size_t i; 
-  if( sl ) {
+/* must add name != NULL */
+bool_t add_unique_stringlist(stringlist_t *sl, const char_t *name, flag_t flags) {
+  int i; 
+  if( sl && name ) {
     for(i = 0; i < sl->num; i++) {
-      if( strcmp(name, sl->list[i]) == 0 ) {
+      if( sl->list[i] && (strcmp(name, sl->list[i]) == 0) ) {
 	return FALSE;
       }
     }
-    return add_stringlist(sl, name);
+    return add_stringlist(sl, name, flags);
   }
   return FALSE;
 }
+
+/* return the list of strings, with a NULL pointer after the last string */
+const char **argv_stringlist(stringlist_t *sl) {
+  if( sl ) {
+    if( (sl->num < sl->max) || 
+	grow_mem(&sl->list, &sl->max, sizeof(char_t *), 16) ) {
+      sl->list[sl->num] = NULL;
+      return sl->list;
+    }
+  }
+  return NULL;
+}
+

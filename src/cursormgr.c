@@ -20,13 +20,15 @@
 
 #include "common.h"
 #include "cursormgr.h"
-#include "error.h"
+#include "myerror.h"
 #include <string.h>
 
 bool_t create_cursormanager(cursormanager_t *cmg) {
+  bool_t ok = TRUE;
   if( cmg ) {
-    return ( create_cursor(&cmg->c0) &&
-	     create_cursor(&cmg->c1) );
+    ok &= create_cursor(&cmg->c0);
+    ok &= create_cursor(&cmg->c1);
+    return ok;
   }
   return FALSE;
 }
@@ -87,11 +89,11 @@ bool_t prev_sibling_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbpars
   return FALSE;
 }
 
-bool_t next_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp) {
+bool_t next_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp, int count) {
   skip_t skip;
-  skip.count = 1;
+  skip.count = count;
   skip.depth = 0;
-  skip.what = any;
+  skip.what = not_endtag;
   skip.nodemask = NODEMASK_ALL;
   if( cmg && cursor && fbp ) {
     return forward_skip(&skip, cursor, fbp);
@@ -99,28 +101,21 @@ bool_t next_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fb
   return FALSE;
 }
 
-bool_t prev_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp) {
+bool_t prev_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp, int count) {
   skip_t skip;
-  int n;
-  /* this doesn't work properly yet */
+  skip.count = count;
+  skip.depth = 0;
+  skip.what = not_endtag;
+  skip.nodemask = NODEMASK_ALL;
   if( cmg && cursor && fbp ) {
-    n = get_top_ord_cursor(cursor);
-    if( n < 1 ) {
-      return parent_cursor(cursor);
-    } else {
-      skip.count = n;
-      skip.depth = get_depth_cursor(cursor);
-      skip.what = eq_depth;
-      skip.nodemask = NODEMASK_ALL;
-      return parent_cursor(cursor) && forward_skip(&skip, cursor, fbp);
-    }
+    return backward_skip(&skip, cursor, fbp);
   }
   return FALSE;
 }
 
-bool_t next_pivot_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp, int pivot) {
+bool_t next_pivot_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp, int pivot, int count) {
   skip_t skip;
-  skip.count = 1;
+  skip.count = count;
   skip.depth = pivot;
   skip.what = lt_depth;
   skip.nodemask = NODEMASK_ALL;
@@ -130,24 +125,35 @@ bool_t next_pivot_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser
   return FALSE;
 }
 
-bool_t prev_pivot_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp, int pivot) {
-  int n;
-  bool_t changed = FALSE;
+bool_t prev_pivot_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp, int pivot, int count) {
+  skip_t skip;
+  skip.count = count;
+  skip.depth = pivot;
+  skip.what = lt_depth;
+  skip.nodemask = NODEMASK_ALL;
   if( cmg && cursor && fbp ) {
-    n = get_depth_cursor(cursor);
-    if( n >= pivot ) {
-      while( (n > pivot) && parent_cursor(cursor) ) { 
-	n--; 
-	changed = TRUE;
-      }
-      return ( changed || 
-	       prev_sibling_cursormanager(cmg, cursor, fbp) ||
-	       parent_cursormanager(cmg, cursor, fbp) );
-    } else {
-      /* incomplete: this should go to the last cursor with pivot depth */
-      return ( prev_sibling_cursormanager(cmg, cursor, fbp) ||
-	       parent_cursormanager(cmg, cursor, fbp) );
-    }
+    return backward_skip(&skip, cursor, fbp);
   }
   return FALSE;
+
+
+  /* int n; */
+  /* bool_t changed = FALSE; */
+  /* if( cmg && cursor && fbp ) { */
+  /*   n = get_depth_cursor(cursor); */
+  /*   if( n >= pivot ) { */
+  /*     while( (n > pivot) && parent_cursor(cursor) ) {  */
+  /* 	n--;  */
+  /* 	changed = TRUE; */
+  /*     } */
+  /*     return ( changed ||  */
+  /* 	       prev_sibling_cursormanager(cmg, cursor, fbp) || */
+  /* 	       parent_cursormanager(cmg, cursor, fbp) ); */
+  /*   } else { */
+  /*     /\* incomplete: this should go to the last cursor with pivot depth *\/ */
+  /*     return ( prev_sibling_cursormanager(cmg, cursor, fbp) || */
+  /* 	       parent_cursormanager(cmg, cursor, fbp) ); */
+  /*   } */
+  /* } */
+  /* return FALSE; */
 }

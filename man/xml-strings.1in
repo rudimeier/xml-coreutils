@@ -1,39 +1,51 @@
 \" t
 .TH XML-STRINGS 1 "xml-coreutils" "Version @VERSION@" ""
 .SH NAME
-xml-strings \- display strings of an XML file on the standard output
+xml-strings \- print the strings of data in an XML file to the standard output.
 .SH SYNOPSIS
 .HP
-.B xml-strings
-[OPTION] [FILE]...
+.B xml-strings 
+.RI [ OPTION ]...
+.R [
+.RI [ FILE ]...
+.RI [: XPATH ]...
+.R ]...
 .SH DESCRIPTION
-.PP
+.P
 .B xml-strings
-prints the strings stored inside one or more XML files on standard output.
-The exact behaviour depends on the switches given, but by default all the
-tags are stripped and only chardata is printed. If no FILE(s) are given,
-.B xml-strings
-reads standard input.
-.SH EXAMPLES
-.PP
-xml-echo "hello" | xml-strings
-.IP
-This outputs "hello".
-.SH SOURCE
-.PP
-The source code for the latest version of this program is available at the
+reads each FILE (or the standard input if no FILE is given) and
+prints the strings of textual data for nodes specified by the corresponding XPATH(s).
+.P
+By default, printed strings for separate nodes are printed on separate lines;
+Each printed string is formatted to fit on a single line, by squeezing
+whitespace and removing embedded newlines; Only text (not attribute values)
+is printed, unless some XPATH explicitly requests an attribute value.
+.P
+.SH OPTIONS
+.IP --no-squeeze
+do not squeeze whitespace or remove embedded newlines in strings.
+.SH EXIT STATUS
+xml-strings returns 0 on success, or 1 otherwise.
+.SH EXAMPLE
+.EX
+xml-strings radio.rss ://title
+.EE
+.SH AUTHORS
+.P
+.MT laird@lbreyer.com
+Laird A. Breyer
+.ME
+is the original author of this software.
+The source code (GPLv3 or later) for the latest version is available at the
 following locations: 
 .PP
-.na
-http://www.lbreyer.com/gpl.html
+.na 
+.UR http://www.lbreyer.com/gpl.html
+.UE
 .br
-http://dbacl.sourceforge.net
+.UR http://xml-coreutils.sourceforge.net
+.UE
 .ad
-.SH BUGS
-.PP
-.SH AUTHOR
-.PP
-Laird A. Breyer <laird@lbreyer.com>
 .SH SEE ALSO
 .PP
 .BR xml-coreutils (7)

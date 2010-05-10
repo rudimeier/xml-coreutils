@@ -1,0 +1,28 @@
+_PURPOSE_
+xml-fixtags with broken tag nesting and truncation.
+_INPUT_ 
+<?xml version="1.0"?>
+<a>
+  <b>
+    <d>
+    </c>
+  </b>
+hello
+<br/>
+</a>
+<u>
+_COMMAND_
+xml-fixtags
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<a>
+  <b>
+    <d>
+    <c/>
+  </d></b>
+hello
+<br/>
+</a>
+_END_

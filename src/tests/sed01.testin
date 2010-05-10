@@ -1,0 +1,17 @@
+_PURPOSE_
+xml-sed simple substitution test.
+_INPUT_ 
+<?xml version="1.0"?>
+<greeting>
+	hello
+</greeting>
+_COMMAND_
+xml-sed 's/hello/goodbye/'
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<greeting>
+	goodbye
+</greeting>
+_END_

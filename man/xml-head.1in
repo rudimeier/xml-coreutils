@@ -1,0 +1,55 @@
+\" t
+.TH XML-HEAD 1 "xml-coreutils" "Version @VERSION@" ""
+.SH NAME
+xml-head \- truncate the parts of an XML file.
+.SH SYNOPSIS
+.HP
+.B xml-head 
+.RI [ OPTION ]...
+.RI [ FILE ]
+.SH DESCRIPTION
+.PP
+.B xml-head
+prints to standard output an XML file which is a truncated form of 
+FILE, or the standard input. 
+.B xml-head
+can limit the number of tags in the document, or the amount of data
+enclosed within tags, such as the length or number of textual lines,
+or combinations thereof.
+.P
+By default, the number of tags is limited to 10.
+.SH OPTIONS
+.IP "-c NUMCHARS"
+output the first NUMCHARS characters of each line of input data enclosed
+within tags. The remaining characters of each line are thrown away.
+.IP "-n NUMLINES"
+output the first NUMLINES lines of input data enclosed within tags.
+The remaining lines of data are thrown away.
+.IP "-t NUMTAGS"
+output the first NUMTAGS tags in the input. Remaining tags are thrown away,
+but all open tags are closed to ensure a well formed document.
+.SH EXIT STATUS
+xml-head returns 0 on success, or 1 otherwise.
+.SH EXAMPLE
+.EX
+xml-head document.xml
+.EE
+.SH AUTHORS
+.P
+.MT laird@lbreyer.com
+Laird A. Breyer
+.ME
+is the original author of this software.
+The source code (GPLv3 or later) for the latest version is available at the
+following locations: 
+.PP
+.na 
+.UR http://www.lbreyer.com/gpl.html
+.UE
+.br
+.UR http://xml-coreutils.sourceforge.net
+.UE
+.ad
+.SH SEE ALSO
+.PP
+.BR xml-coreutils (7)

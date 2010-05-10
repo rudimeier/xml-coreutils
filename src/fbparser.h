@@ -65,6 +65,9 @@ typedef void (fb_pidata_fun)(fbparserinfo_t *pinfo, const char_t *target, const 
 typedef void (fb_start_cdata_fun)(fbparserinfo_t *pinfo, void *user);
 typedef void (fb_end_cdata_fun)(fbparserinfo_t *pinfo, void *user);
 typedef void (fb_comment_fun)(fbparserinfo_t *pinfo, const char_t *data, void *user);
+typedef void (fb_start_doctypedecl_fun)(fbparserinfo_t *pinfo, const char_t *name, const char_t *sysid, const char_t *pubid, bool_t intsub, void *user);
+typedef void (fb_end_doctypedecl_fun)(fbparserinfo_t *pinfo, void *user);
+typedef void (fb_entitydecl_fun)(fbparserinfo_t *pinfo, const char_t *name, bool_t isparam, const char_t *value, int len, const char_t *base, const char_t *sysid, const char_t *pubid, const char_t *notation, void *user);
 typedef void (fb_default_fun)(fbparserinfo_t *pinfo, const char_t *data, size_t buflen, void *user);
 typedef void (fb_node_fun)(fbparserinfo_t *pinfo, void *user);
 
@@ -76,6 +79,9 @@ typedef struct {
   fb_start_cdata_fun *start_cdata; /* after start of CDATA */
   fb_end_cdata_fun *end_cdata; /* after end of CDATA */
   fb_comment_fun *comment; /* after comment */
+  fb_start_doctypedecl_fun *start_doctypedecl; /* after DOCTYPE before [] */
+  fb_end_doctypedecl_fun *end_doctypedecl; /* after DOCTYPE after [] */
+  fb_entitydecl_fun *entitydecl; /* after ENTITY */
   fb_default_fun *dfault; /* any fragment not covered above */
   fb_node_fun *node; /* after any node (never a fragment) */
   void *user;
@@ -90,6 +96,8 @@ typedef struct {
 
 bool_t open_fileblockparser(fbparser_t *fbp, const char *path, size_t maxblocks);
 bool_t close_fileblockparser(fbparser_t *fbp);
+bool_t heartbeat_fileblockparser(fbparser_t *fbp);
+bool_t refresh_fileblockparser(fbparser_t *fbp);
 
 bool_t setup_fileblockparser(fbparser_t *fbp, fbcallback_t *fbcallbacks);
 bool_t parse_cursor_fileblockparser(fbparser_t *fbp, const cursor_t *cursor, fbcallback_t *fbcallbacks, position_t *pos);

@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<People>
+	<Person Name="Fred Davis">
+		<Address>
+			<LineOne>4 Bushy Street</LineOne>
+			<LineTwo>Green Road</LineTwo>
+			<County>Mayo</County>
+			<Country>Ireland</Country>
+		</Address>
+		<TelNo>+353 96 45232</TelNo>
+	</Person>
+</People>

@@ -1,0 +1,55 @@
+\" t
+.TH XML-UNECHO 1 "xml-coreutils" "Version @VERSION@" ""
+.SH NAME
+xml-unecho \- ungenerate an XML file into an xml-echo(1) expression.
+.SH SYNOPSIS
+.HP
+.B xml-unecho 
+.RI [ OPTION ]...
+.R [
+.RI [ FILE ]
+.RI [: XPATH ]...
+.R ]
+.SH DESCRIPTION
+.PP
+.B xml-unecho
+reads an XML file and transforms it into a string which
+is in the format used by 
+.BR xml-echo (1). 
+It is intended that 
+if 
+.BR xml-echo (1)
+processes this string, the output should be 
+equivalent to the original FILE.
+.PP
+As an important exception, if the --xml-sed option is used, then
+each line of output shows the pattern space as seen by 
+.BR xml-sed (1)
+during
+processing. This can be useful if you need to understand an 
+.BR xml-sed (1)
+script.
+.SH OPTIONS
+.IP --xml-sed
+print echo-leaves as seen and processed by xml-sed.
+.SH EXIT STATUS
+xml-unecho returns 0 on success, or 1 otherwise.
+.SH AUTHORS
+.P
+.MT laird@lbreyer.com
+Laird A. Breyer
+.ME
+is the original author of this software.
+The source code (GPLv3 or later) for the latest version is available at the
+following locations: 
+.PP
+.na 
+.UR http://www.lbreyer.com/gpl.html
+.UE
+.br
+.UR http://xml-coreutils.sourceforge.net
+.UE
+.ad
+.SH SEE ALSO
+.PP
+.BR xml-coreutils (7)

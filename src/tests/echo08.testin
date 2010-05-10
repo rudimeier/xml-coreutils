@@ -1,0 +1,13 @@
+_PURPOSE_
+xml-echo attributes.
+_INPUT_ 
+_COMMAND_
+xml-echo -e '[x@y=z@w=a b]some text'
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<x y="z" w="a b">
+	some text
+</x>
+_END_

@@ -1,31 +1,85 @@
 \" t
 .TH XML-FIND 1 "xml-coreutils" "Version @VERSION@" ""
 .SH NAME
-xml-find \- search for nodes in an XML file or the standard input
+xml-find \- search for nodes in XML files and execute actions.
 .SH SYNOPSIS
 .HP
-.B xml-find
-[OPTION] [[FILE][:XPATH]] [EXPRESSION]
+.B xml-find 
+.R [
+.RI [ FILE ]...
+.RI [: XPATH ]...
+.R ]...
+.RI [ EXPRESSION ]
 .SH DESCRIPTION
 .PP
 .B xml-find
-prints the nodes contained in one or more XML files on standard output.
-.SH EXAMPLES
-.SH SOURCE
-.PP
-The source code for the latest version of this program is available at the
+searches the contents of FILE like a directory tree, and evaluates the 
+given EXPRESSION on each encountered tag. The search starts at each XPATH associated with FILE, according to the common unified command line convention
+described in 
+.BR xml-coreutils (7).
+For each tag, the EXPRESSION is evaluated from left to right and any
+actions are performed as required, after which
+.B xml-find
+moves to the next tag. If no EXPRESSION is specified, the EXPRESSION is 
+assumed to be -print.
+
+.SH EXPRESSION
+An expression is a sequence of actions to be performed in order for
+each current node, while the XML document is being traversed.
+Each action can be followed by zero or more arguments, and also evaluates
+to true or false. When some action evaluates to false, the subsequent
+actions are not evaluated. The available
+actions are:
+.IP -print
+Prints the XPATH for the current node.
+.IP -exec PROGRAM [ARG]... ';'
+Execute PROGRAM with the optional list of ARG arguments. The final semicolon
+indicates the end of arguments, and must be supplied even if no arguments are given. There are three special arguments, {} expands to the path for the currently visited tag, {@} expands to a list of attributes and values associated with the current tag, and {-} expands to the name of a temporary file which contains a copy of the currently visited node. Evaluates to true if PROGRAM returns zero, and false otherwise.
+.IP -execnode PROGRAM [ARG]... ';'
+Similar to -exec, but all paths are relative to the current node.
+.IP -name PATTERN
+Checks to see if the currently visited tag name matches the shell glob PATTERN. Returns true on a match, false otherwise.
+.IP -path PATTERN
+Checks to see if the path for the currently visited tag matches the shell glob PATTERN. Returns true on a match, false otherwise.
+.IP '(' [ACTION]... ')'
+Represents a block of actions. Returns true if every optional ACTION returns true, and false otherwise.
+.IP '!' ACTION
+Negates the value of ACTION. Returns true if ACTION returns false, and vice versa.
+.IP ACTION1 '-a' ACTION2
+Evaluates ACTION2 if and only if ACTION1 returns true. Returns true
+if both ACTION1 and ACTION2 evaluate to true, false otherwise.
+.IP ACTION1 '-o' ACTION2
+Evaluates ACTION2 if and only if ACTION1 returns false. Returns the value 
+of ACTION1 if true, or the value of ACTION2 otherwise.
+.SH EXIT STATUS
+xml-find returns 0 on success, or 1 otherwise.
+.SH EXAMPLE
+.P
+Identify all the tag addresses which match a given XPATH:
+.EX
+xml-find movies.rss :/rss/channel -print
+.EE
+.P
+For each matching node, print all of its attributes:
+.EX
+xml-find movies.rss ://media:content -exec echo {@} \;
+.EE
+.SH AUTHORS
+.P
+.MT laird@lbreyer.com
+Laird A. Breyer
+.ME
+is the original author of this software.
+The source code (GPLv3 or later) for the latest version is available at the
 following locations: 
 .PP
-.na
-http://www.lbreyer.com/gpl.html
+.na 
+.UR http://www.lbreyer.com/gpl.html
+.UE
 .br
-http://dbacl.sourceforge.net
+.UR http://xml-coreutils.sourceforge.net
+.UE
 .ad
-.SH BUGS
-.PP
-.SH AUTHOR
-.PP
-Laird A. Breyer <laird@lbreyer.com>
 .SH SEE ALSO
 .PP
 .BR xml-coreutils (7)

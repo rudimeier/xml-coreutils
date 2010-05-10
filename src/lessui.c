@@ -20,7 +20,7 @@
 
 #include "common.h"
 #include "lessui.h"
-#include "error.h"
+#include "myerror.h"
 
 #include <slang.h>
 
@@ -28,13 +28,19 @@
 /* #define free_display(a) 1 */
 
 bool_t create_lessui(lessui_t *ui) {
+  bool_t ok = TRUE;
   if( ui ) {
-    if( create_cursor(&ui->cursor) &&
-	create_cursormanager(&ui->cmg) &&
-	create_cursorrep(&ui->cr) &&
-	create_display(&ui->display) ) {
-      return TRUE;
+    ok &= create_cursor(&ui->cursor);
+    ok &= create_cursormanager(&ui->cmg);
+    ok &= create_cursorrep(&ui->cr);
+    ok &= create_display(&ui->display);
+    if( ok ) {
+
+      /* toggle_display(&ui->display, DISPLAY_WRAP); */
+      /* toggle_display(&ui->display, DISPLAY_ATTRIBUTES); */
+
     }
+    return ok;
   }
   return FALSE;
 }
@@ -62,23 +68,43 @@ bool_t reset_lessui(lessui_t *ui) {
   return FALSE;
 }
 
-bool_t forward_lessui(lessui_t *ui, fbparser_t *fbp) {
+bool_t home_lessui(lessui_t *ui, fbparser_t *fbp) {
+  if( ui && fbp ) {
+    while( get_length_cursor(&ui->cursor) > 1 ) {
+      parent_cursormanager(&ui->cmg, &ui->cursor, fbp);
+    }
+    return TRUE;
+  }
+  return FALSE;
+}
+
+bool_t end_lessui(lessui_t *ui, fbparser_t *fbp) {
+  if( ui && fbp ) {
+    return next_cursormanager(&ui->cmg, &ui->cursor, fbp, INT_MAX);
+  }
+  return FALSE;
+}
+
+bool_t forward_lessui(lessui_t *ui, fbparser_t *fbp, int count) {
+  bool_t retval;
   if( ui && fbp ) {
     if( ui->display.pivot > 0 ) {
-      return next_pivot_cursormanager(&ui->cmg, &ui->cursor, fbp, ui->display.pivot);
+      return next_pivot_cursormanager(&ui->cmg, &ui->cursor, fbp, ui->display.pivot, count);
     } else {
-      return next_cursormanager(&ui->cmg, &ui->cursor, fbp);
+      retval = next_cursormanager(&ui->cmg, &ui->cursor, fbp, count);
+      /* debug_cursor(&ui->cursor); */
+      return retval;
     }
   }
   return FALSE;
 }
 
-bool_t back_lessui(lessui_t *ui, fbparser_t *fbp) {
+bool_t back_lessui(lessui_t *ui, fbparser_t *fbp, int count) {
   if( ui && fbp ) {
     if( ui->display.pivot > 0 ) {
-      return prev_pivot_cursormanager(&ui->cmg, &ui->cursor, fbp, ui->display.pivot);
+      return prev_pivot_cursormanager(&ui->cmg, &ui->cursor, fbp, ui->display.pivot, count);
     } else {
-      return prev_cursormanager(&ui->cmg, &ui->cursor, fbp);
+      return prev_cursormanager(&ui->cmg, &ui->cursor, fbp, count);
     }
   }
   return FALSE;
@@ -100,7 +126,14 @@ bool_t prev_sibling_lessui(lessui_t *ui, fbparser_t *fbp) {
 
 bool_t help_lessui(lessui_t *ui) {
   if( ui ) {
-    do_help_display(&ui->display);
+    return do_help_display(&ui->display);
+  }
+  return FALSE;
+}
+
+bool_t colour_cycle_lessui(lessui_t *ui) {
+  if( ui ) {
+    return next_colour_scheme_display(&ui->display);
   }
   return FALSE;
 }
@@ -120,7 +153,6 @@ bool_t show_cursor_lessui(lessui_t *ui, cursor_t *cursor, fbparser_t *fbp) {
 
 bool_t mainloop_lessui(lessui_t *ui, fbparser_t *fbp) {
   bool_t done = FALSE;
-
   ui->dirty = TRUE;
   while(!done) {
 
@@ -142,21 +174,39 @@ bool_t mainloop_lessui(lessui_t *ui, fbparser_t *fbp) {
       done = 1;
       break;
     case forward:
-      forward_lessui(ui, fbp);
+      forward_lessui(ui, fbp, 1);
       break;
     case backward:
-      back_lessui(ui, fbp);
+      back_lessui(ui, fbp, 1);
       break;
-    case left:
+    case indent:
       pivot_display(&ui->display, -1);
       break;
-    case right:
+    case backindent:
       pivot_display(&ui->display, +1);
       break;
-    case select1:
+    case right:
+      shift_display(&ui->display, +5);
+      break;
+    case left:
+      shift_display(&ui->display, -5);
+      break;
+    case pgdown:
+      forward_lessui(ui, fbp, 10);
+      break;
+    case pgup:
+      back_lessui(ui, fbp, 10);
+      break;
+    case home:
+      home_lessui(ui, fbp);
+      break;
+    case end:
+      end_lessui(ui, fbp);
+      break;
+    case attributes:
       toggle_display(&ui->display, DISPLAY_ATTRIBUTES);
       break;
-    case select2:
+    case wordwrap:
       toggle_display(&ui->display, DISPLAY_WRAP);
       break;
     case next_sibling:
@@ -166,6 +216,12 @@ bool_t mainloop_lessui(lessui_t *ui, fbparser_t *fbp) {
       break;
     case help:
       help_lessui(ui);
+      break;
+    case colours:
+      colour_cycle_lessui(ui);
+      break;
+    case refresh:
+      refresh_fileblockparser(fbp);
       break;
     default:
       break;

@@ -1,0 +1,55 @@
+\" t
+.TH XML-FILE 1 "xml-coreutils" "Version @VERSION@" ""
+.SH NAME
+xml-file \- determine type of XML files.
+.SH SYNOPSIS
+.HP
+.B xml-file 
+.RI [ OPTION ]...
+.I FILE
+.RI [ FILE ]...
+.SH DESCRIPTION
+.PP
+.B xml-file
+searches the initial part of each FILE in an attempt to identify it, printing
+the result to the standard output.
+.P
+.B xml-file
+is not a replacement for
+.BR file (1),
+and only attempts to identify XML files, not other types of files, and
+cannot guarantee that a file is well formed or valid, since only the 
+initial part is inspected.
+.SH OPTIONS
+.IP --show-everything
+Show all the data collected from the file.
+.SH EXIT STATUS
+xml-file returns 0 on success, or 1 otherwise.
+.SH EXAMPLE
+.P
+Make a list of XML files in the current directory:
+.EX
+% xml-file * | grep -v unrecognized | cut -f1 -d ':'
+.EE
+.SH BUGS
+.P
+There is no local magic file that contains all the identification rules.
+.SH AUTHORS
+.P
+.MT laird@lbreyer.com
+Laird A. Breyer
+.ME
+is the original author of this software.
+The source code (GPLv3 or later) for the latest version is available at the
+following locations: 
+.PP
+.na 
+.UR http://www.lbreyer.com/gpl.html
+.UE
+.br
+.UR http://xml-coreutils.sourceforge.net
+.UE
+.ad
+.SH SEE ALSO
+.PP
+.BR xml-coreutils (7)

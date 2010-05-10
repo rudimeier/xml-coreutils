@@ -30,7 +30,8 @@
 
 typedef enum { 
   any, 
-  eq_depth, gt_depth, gte_depth, lt_depth, lte_depth
+  eq_depth, gt_depth, gte_depth, lt_depth, lte_depth,
+  not_endtag
 } skiptype_t;
 typedef struct {
   int count;
@@ -40,6 +41,7 @@ typedef struct {
 } skip_t;
 
 bool_t forward_skip(skip_t *skip, cursor_t *cursor, fbparser_t *fbp);
+bool_t backward_skip(skip_t *skip, cursor_t *cursor, fbparser_t *fbp);
 
 #endif
  

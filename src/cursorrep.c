@@ -20,15 +20,17 @@
 
 #include "common.h"
 #include "cursorrep.h"
-#include "error.h"
+#include "myerror.h"
 #include "xpath.h"
 
 #include <stdio.h>
 #include <string.h>
 
 bool_t create_cursorrep(cursorrep_t *cr) {
+  bool_t ok = TRUE;
   if( cr ) {
-    return ( create_xpath(&cr->xpath) );
+    ok &= create_xpath(&cr->xpath);
+    return ok;
   }
   return FALSE;
 }

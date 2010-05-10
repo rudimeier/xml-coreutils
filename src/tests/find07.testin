@@ -1,0 +1,104 @@
+_PURPOSE_
+xml-find EXECNODE test with {-}, assumes "which {cat,echo}" works.
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+</a>
+_COMMAND_
+xml-find -execnode "`which cat`" '{-}'  ';' -execnode "`which echo`" ';'
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+</a>
+<?xml version="1.0"?>
+<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+<?xml version="1.0"?>
+<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+<?xml version="1.0"?>
+<d>C D E</d>
+<?xml version="1.0"?>
+<e>F G</e>
+<?xml version="1.0"?>
+<f>H</f>
+<?xml version="1.0"?>
+<g>I</g>
+<?xml version="1.0"?>
+<h>J K L</h>
+<?xml version="1.0"?>
+<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+<?xml version="1.0"?>
+<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+<?xml version="1.0"?>
+<d>O D E</d>
+<?xml version="1.0"?>
+<e>F G</e>
+<?xml version="1.0"?>
+<f>H</f>
+<?xml version="1.0"?>
+<g>I</g>
+<?xml version="1.0"?>
+<h>J K P</h>
+_END_

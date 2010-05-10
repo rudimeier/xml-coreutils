@@ -1,0 +1,935 @@
+<html>
+<head>
+<title>XML-Coreutils: A Tutorial</title>
+</head>
+<body>
+<p>
+<h1>XML-Coreutils: A Tutorial</h1>
+<p>
+<center><h2>by Laird A. Breyer</h2></center>
+
+<p>
+
+This tutorial will bring you up to speed on the xml-coreutils(7)
+command line tools. These are a collection of utilities very similar
+to the traditional Unix shell core utilities, but intended for reading
+and writing XML files.
+
+<p>
+
+There are many programs and libraries of code available today which
+can process XML files, but very few of them are targeted directly at
+users of the Unix shell (system administrators, developers and casual
+users), and practically none of them interact cleanly with the
+existing Unix shell tools. The xml-coreutils are intended to fill this
+gap.
+
+<p>
+
+You can learn about the initial design of
+xml-coreutils(7) <a href="unix_xml.html">here</a>, or you can read the
+current manual pages. However, the most important thing you should
+know is this:
+
+<p>
+
+<b>The xml-coreutils try to be as close as possible to the traditional
+Unix tools. Where it makes sense, they have the same names, the same
+short command line switches, and behave the same way, except that they
+work on XML files instead of ordinary text</b>.
+
+<p>
+
+Let's begin. If you want to type along, you will need to have an
+installed copy of xml-coreutils version 0.8 or later (this tutorial
+was written with version 0.8, if you have a later version you might
+see small differences in output).
+
+<p>
+
+Here's how to check if the tools are installed.
+Open a terminal and type "xml-file" followed by the enter key as
+follows (do not type the %, it's only a placeholder for your shell
+prompt):
+
+<p>
+<pre><tt>
+% xml-file
+Usage: xml-file [OPTION]... FILE [FILE]...
+Determine type of FILE(s).
+
+      --help     display this help and exit
+      --version  display version information and exit
+</tt></pre>
+
+<p>
+
+If you see the usage message, then xml-coreutils is already installed
+and ready to be used. If you see an error message such as "No such file or
+directory" then you first have to download and install xml-coreutils
+from its <a href="http://xml-coreutils.sourceforge.net">website</a>, or
+otherwise.
+
+<p>
+<h2>Opening and viewing existing XML files</h2>
+
+<p>
+
+We will work below with a simple XML file called <a href="food.xml">food.xml</a>.  What can
+we do with it? The simplest thing we can do is send it to the terminal
+for display:
+
+<p>
+<pre><tt>
+% xml-cat food.xml
+&lt;?xml version="1.0"?&gt;
+&lt;root&gt;
+
+  &lt;product price="3"&gt;Chicken&lt;/product&gt;
+  &lt;product price="11.50"&gt;Lobster&lt;/product&gt;
+  &lt;product price=".20"&gt;Apple&lt;/product&gt;
+  &lt;product price="1.09"&gt;Milk (2 litres)&lt;/product&gt;
+
+&lt;/root&gt;
+</tt></pre>
+
+<p>
+
+Of course this is trivial, and we don't need a special command just to
+do this.  We could simply use the ordinary cat(1) command. However,
+there are some differences here.
+
+<p>
+
+The first difference is that xml-cat(1) also checks the
+file <a href="food.xml">food.xml</a> for integrity, and whereas cat(1)
+prints whatever it finds in the file as-is, here xml-cat(1) will print
+an error (and refuse to continue) as soon as it finds
+that <a href="food.xml">food.xml</a> is not well formed XML. It
+actually is well formed, so we don't see an error message in this
+case.
+
+<p>
+
+Thus we get an implicit guarantee from xml-cat(1), that whatever it
+allows to be printed will be suitable for another XML processor to
+consume.  The guarantee is weak, however, and is not a full validity
+guarantee, only a well formedness guarantee. All the xml-coreutils(7)
+commands process well formed XML documents and always ignore
+validity. This is because they are likely to be used on XML
+fragments, which don't usually carry their own validation specs.
+
+<p>
+
+The second difference between cat(1) and xml-cat(1) is at first
+surprising: the existing top level element (called &lt;products&gt;)
+in the <a href="food.xml">food.xml</a> file is discarded, and replaced
+with a generic &lt;root&gt; tag. Why does this occur?
+
+<p>
+
+Just like with cat(1), the main task of xml-cat(1) is concatenation,
+ie taking two or more XML files as input and creating a single XML
+file which contains them all as output. But a well formed XML file
+must only contain a single top level tag, and therefore xml-cat(1)
+does the simplest thing it can to satisfy this constraint (as well as
+a few others we won't mention here): it removes the top level tag from
+each input file, and wraps the output in a single &lt;root&gt;
+tag. You'll see this in action below. The generic root tag is also a
+handy reminder that the output is no longer associated with a DTD.
+
+<p>
+
+Although xml-cat(1) is nice for inspecting small XML files, for larger
+files a specialized viewer is essential. The xml-coreutils(7) include
+such a viewer, called xml-less(1). This is a terminal based
+interactive viewer, which is inspired by less(1), but with some extra
+advantages: because it understands the structure of XML files, it can
+do things that less(1) cannot, such as folding (press the TAB key),
+word wrapping (press the W key), showing or hiding attributes (press
+the A key), etc.  You can try it out as follows:
+
+<p>
+<pre><tt>
+% xml-less food.xml
+</tt></pre>
+
+<p>
+
+One more command should be discussed straight away, and that 
+is xml-fixtags(1). This command takes an XML file which is not necessarily
+well formed, and repairs it so that it becomes well formed XML. 
+It can be used to fix small problems, and can even convert an HTML file
+into XML. However, be warned that the repairs are "dumb", and will probably
+not be as expected.
+
+<p>
+
+Aside from xml-fixtags(1), all the other xml-coreutils(7) commands
+expect their input XML files to be well formed, or will signal an
+error. This follows the XML standard <i>modus operandi</i>, and also
+prevents duplication of functionality.
+
+<p>
+<pre><tt>
+% xml-fixtags food.xml | xml-less
+% xml-fixtags --html xml_coreutils_tutorial.html | xml-fmt
+</tt></pre>
+
+
+
+<h2>Writing small XML files</h2>
+
+<p>
+
+To create a small XML document on the fly, we can use the xml-echo(1)
+command.
+
+<p>
+<pre><tt>
+% xml-echo -e "[products/product@price=2.70]Soft Drink"
+&lt;?xml version="1.0"?&gt;
+&lt;products&gt;
+	&lt;product price="2.70"&gt;
+		Soft Drink
+	&lt;/product&gt;
+&lt;/products&gt;
+</tt></pre>
+
+<p>
+
+There are a number of things to note here: the indentation is
+automatic (this could be disabled with the -n switch), and all the tags
+are properly closed when necessary. The argument string contains
+instructions for building the XML file structure (these instructions
+are surrounded by square brackets []).
+
+<p>
+
+One way to combine the previous example with
+the <a href="food.xml">food.xml</a> file is as follows (you don't need
+to type the backslash \ if you don't split the commands over several lines):
+
+<p>
+<pre><tt>
+% xml-echo -e "[products/product@price=2.70]Soft Drink" \
+        | xml-cat food.xml stdin
+&lt;?xml version="1.0"?&gt;
+&lt;root&gt;
+
+  &lt;product price="3"&gt;Chicken&lt;/product&gt;
+  &lt;product price="11.50"&gt;Lobster&lt;/product&gt;
+  &lt;product price=".20"&gt;Apple&lt;/product&gt;
+  &lt;product price="1.09"&gt;Milk (2 litres)&lt;/product&gt;
+
+
+	&lt;product price="2.70"&gt;
+		Soft Drink
+	&lt;/product&gt;
+&lt;/root&gt;
+</tt></pre>
+
+<p>
+
+Note that in general, this output would be passed to a formatting tool
+to fix the final presentation. xml-coreutils(7) contains just such a
+tool, called xml-fmt(1).
+
+<p>
+
+Here is a second example, which is more complicated, to better see how
+xml-echo(1) builds up an XML file incrementally and show off some
+other features.
+
+<p>
+<pre><tt>
+% xml-echo -en "\i[People/Person@Name=Fred Davis/Address]\i" \
+        "\I[LineOne]4 Bushy Street[..]\i" \
+        "\I[LineTwo]Green Road[..]\i" \
+        "\I[County]Mayo[..]\i" \
+        "\I[Country]Ireland[..]" \
+        "\I[..]\i" \
+        "\I[TelNo]+353 96 45232[..]\i"
+&lt;?xml version="1.0"?>
+&lt;People&gt;
+	&lt;Person Name="Fred Davis"&gt;
+		&lt;Address&gt;
+			&lt;LineOne&gt;4 Bushy Street&lt;/LineOne&gt;
+			&lt;LineTwo&gt;Green Road&lt;/LineTwo&gt;
+			&lt;County&gt;Mayo&lt;/County&gt;
+			&lt;Country&gt;Ireland&lt;/Country&gt;
+		&lt;/Address&gt;
+		&lt;TelNo&gt;+353 96 45232&lt;/TelNo&gt;
+	&lt;/Person&gt;
+&lt;/People&gt;
+</tt></pre>
+
+<p>
+
+Just like with echo(1), several strings can be given on the command
+line, and they will be concatenated by xml-echo prior to being
+printed. In this example, the indentation of the output is controlled
+with the -n, \i and \I switches. The -n switch disables automatic
+indentation, and \i (resp. \I) turns indenting on (resp. off) for the
+subsequent characters. Although it isn't shown, direct indentation by
+inserting \t and \n characters is also possible.  Finally, the [..]
+path closes the currently open tag.
+
+
+<h2>Extracting strings from an XML file</h2>
+
+<p>
+
+The xml-coreutils(7) are intended to work well with existing core
+utilities, which only understand freeform text. Thus there are a few
+commands which extract the data from an XML file.
+
+<p>
+
+The xml-strings(1) command simply removes all the markup (tags,
+comments, etc) from an XML file:
+
+<p>
+<pre><tt>
+% xml-strings food.xml | grep Milk
+Milk (2 litres)
+% cat food.xml | grep Milk
+  &lt;product price="1.09"&gt;Milk (2 litres)&lt;/product&gt;
+</tt></pre>
+
+<p>
+
+If you have slightly more complex requirements, a good command to use
+is xml-printf(1). This is one of a family of commands which accept
+an <em>XPATH</em>, which you can learn about on the xml-coreutils(7) manpage. 
+An XPATH represents a collection of elements within
+an XML document, and xml-printf(1) just prints the strings from
+those elements.  Here are a few examples:
+
+<p>
+<pre><tt>
+% xml-printf 'I like %s ~:>\n' food.xml :/products/product[1]
+I like Chicken ~:>
+% xml-printf 'The %s costs $%.2f\n' \
+        food.xml :/products/product[3] \
+        :/products/product@price[3]
+The Apple costs $0.20
+% xml-printf 'The products are:\n%30s\n' \
+        food.xml :/*/product
+The products are:
+                       Chicken
+                       Lobster
+                         Apple
+               Milk (2 litres)
+</tt></pre>
+
+<p>
+
+The first argument of xml-printf(1) is a format string similar to the
+format string of printf(3). The remaining arguments are an XML file
+(<a href="food.xml">food.xml</a>) and various XPATHs, which start with
+a colon ':' to distinguish them from a file. In the first two
+examples, these XPATHs contain the single strings "Chicken" and the
+strings "Apple" and "0.20" respectively. In the last example, the
+XPATH represents all four tags named "product" in
+the <a href="food.xml">food.xml</a> document.
+
+<p>
+
+If you don't know what the W3C XPath specification is, then a good way
+to think of an XPATH is as a directory path, where each tag in an XML
+file is thought of as a directory, containing text or other tags.  If
+you look at the <a href="food.xml">food.xml</a> file, then the
+"Chicken" string is contained in the first "product" tag, which is
+itself contained in the "products" top level tag.
+
+<p>
+
+If you're familiar with the W3C XPath specification, then you should
+know that, while the XPATH notation is inspired by the W3C XPath 1.0
+specification, it is not a complete implementation, and likely never
+will be (namespaces, axes and functions are not very shell tool
+friendly).
+
+<p>
+
+Besides printing text in between the tags, you can print a list of the
+tags themselves by using the xml-find(1) command:
+
+<p>
+<pre><tt>
+% xml-find food.xml 
+/products
+/products/product
+/products/product
+/products/product
+/products/product
+</tt></pre>
+
+<p>
+
+However, xml-find(1) is really much more useful than that, it is in
+fact a general purpose selection tool, which can extract XML fragments
+from a file using one or more XPATH(s). We'll show this later.
+
+<h2>Extracting the structure of an XML file</h2>
+ 
+<p>
+
+The simplest structural information about an XML file is its type or
+file format. If this is all you wish to know, use xml-file(1):
+
+<p>
+<pre><tt>
+% xml-file food.xml xml_coreutils_tutorial.html 
+food.xml:                    XML text
+xml_coreutils_tutorial.html: HTML text fragment
+</tt></pre>
+
+<p>
+
+Just as file(1) uses heuristics to identify a file type from its
+binary contents, xml-file(1) uses various pieces of data, such as the
+DOCTYPE and the name of the root tag to (attempt to) identify an XML
+file.  However, xml-file(1) is not a replacement for file(1), and will
+output "unrecognized file" if the file is anything other than
+XML. Moreover, it will not recognize broken (malformed) files if the
+break is below the tags it looks for.
+
+<p>
+
+Every shell user knows how to navigate their home directory using
+ls(1) and cd(1). In xml-coreutils(7), the command xml-ls(1) lets you
+navigate and list the "directory" structure of an XML file using
+XPATHs. Here's an example using
+the <a href="People.xml">People.xml</a> file we discussed earlier.
+
+<p>
+<pre><tt>
+% xml-ls People.xml :/
+&lt;?xml version="1.0"?&gt;
+&lt;root&gt;
+	&lt;People&gt;
+		&lt;Person/&gt;
+	&lt;/People&gt;
+&lt;/root&gt;
+% xml-ls People.xml :/People/Person
+&lt;?xml version="1.0"?&gt;
+&lt;root&gt;
+	&lt;Person&gt;
+		&lt;Address/&gt;
+		&lt;TelNo/&gt;
+	&lt;/Person&gt;
+&lt;/root&gt;
+% xml-ls People.xml :/People/Person/Address
+&lt;?xml version="1.0"?&gt;
+&lt;root&gt;
+	&lt;Address&gt;
+		&lt;LineOne/&gt;
+		&lt;LineTwo/&gt;
+		&lt;County/&gt;
+		&lt;Country/&gt;
+	&lt;/Address&gt;
+&lt;/root&gt;
+% xml-ls People.xml :/People/Person/Address/Country
+&lt;?xml version="1.0"?&gt;
+&lt;root&gt;
+	&lt;Country&gt;
+		Ireland
+	&lt;/Country&gt;
+&lt;/root&gt;
+</tt></pre>
+ 
+<p>
+
+The output of xml-ls(1) is XML.  This makes sense if you recall that
+ls(1) prints both directory names and file names together. If we think
+of a tag as analogous to a directory, then text (such as the string
+"Ireland" in the last example) could be analogous to an ordinary
+file. To support well formed XML output, there must be some
+constraints, such as wrapping the output in a root tag.  After all,
+the original doctype is not directly relevant.
+
+<p>
+
+To extract a structure based upon the presence or absence of textual
+contents, use xml-grep(1). The output will again be an XML file (so it
+can be xml-grepped again!), but containing only the structure
+necessary to access the text. The following examples give an idea of
+how this works.
+
+<p>
+<pre><tt>
+% xml-grep 'Green' People.xml 
+&lt;?xml version="1.0"?&gt;
+&lt;root&gt;
+	&lt;Person Name="Fred Davis"&gt;
+		&lt;Address&gt;
+			
+			&lt;LineTwo&gt;Green Road&lt;/LineTwo&gt;
+			
+			
+		&lt;/Address&gt;
+		
+	&lt;/Person&gt;
+&lt;/root&gt;
+% xml-grep -E '(Fred|Ire*)' People.xml 
+&lt;?xml version="1.0"?&gt;
+&lt;root&gt;
+	&lt;Person Name="Fred Davis"&gt;
+		&lt;Address&gt;
+			
+			
+			
+			&lt;Country&gt;Ireland&lt;/Country&gt;
+		&lt;/Address&gt;
+		
+	&lt;/Person&gt;
+&lt;/root&gt;
+% xml-grep -i --subtree 'fReD' People.xml 
+&lt;?xml version="1.0"?&gt;
+&lt;root&gt;
+	&lt;Person Name="Fred Davis"&gt;
+		&lt;Address&gt;
+			&lt;LineOne&gt;4 Bushy Street&lt;/LineOne&gt;
+			&lt;LineTwo&gt;Green Road&lt;/LineTwo&gt;
+			&lt;County&gt;Mayo&lt;/County&gt;
+			&lt;Country&gt;Ireland&lt;/Country&gt;
+		&lt;/Address&gt;
+		&lt;TelNo&gt;+353 96 45232&lt;/TelNo&gt;
+	&lt;/Person&gt;
+&lt;/root&gt;
+% xml-grep -v 'o' People.xml 
+&lt;?xml version="1.0"?&gt;
+&lt;root&gt;
+	&lt;Person Name="Fred Davis"&gt;
+		&lt;Address&gt;
+			&lt;LineOne&gt;4 Bushy Street&lt;/LineOne&gt;
+			
+			
+			&lt;Country&gt;Ireland&lt;/Country&gt;
+		&lt;/Address&gt;
+		&lt;TelNo&gt;+353 96 45232&lt;/TelNo&gt;
+	&lt;/Person&gt;
+&lt;/root&gt;
+</tt></pre>
+
+<p>
+
+Last but not least, there is xml-find(1), which we already mentioned
+earlier.  Just like its namesake find(1) traverses a directory,
+looking for interesting files, and executing actions, xml-find(1)
+actually traverses an XML file one node at a time, looking for
+(selecting) interesting tags, and executing actions. This makes
+xml-find(1) into an iterator. Before we can illustrate this properly,
+we'll build up with a series of rather boring examples.
+
+<p>
+
+The simplest action is to search for a tag name and print it:
+
+<p>
+<pre><tt>
+% xml-find People.xml -name 'Tel*' -print
+/People/Person/TelNo
+</tt></pre>
+
+<p>
+
+The tag name can also be passed to a program (or a script), for
+example echo:
+
+<p>
+<pre><tt>
+% xml-find People.xml -name 'Tel*' \
+        -exec echo 'The tag is ' '{}' ';'
+The tag is  /People/Person/TelNo
+</tt></pre>
+
+<p>
+
+If this were a tutorial on find(1), then the placeholder {} would be the
+name of a file, 
+which the -exec'd program could open and read. However, this is not
+possible here because {} is only a tag name. So in xml-find(1), there
+are two more placeholders, {@} which expands to a list of attributes
+of the selected tag (if any), and {-} which expands to the name of a
+temporary XML file which contains everything that belongs to the current 
+node. Thus:
+
+<p>
+<pre><tt>
+% xml-find People.xml -name 'Tel*' \
+        -exec cat '{-}' ';'
+&lt;?xml version="1.0"?&gt;
+&lt;People&gt;
+&lt;Person&gt;
+&lt;TelNo&gt;+353 96 45232&lt;/TelNo&gt;&lt;/Person&gt;
+&lt;/People&gt;
+</tt></pre>
+
+<p>
+
+It's time to combine all these ideas into a final example. We'll
+iterate through the <a href="food.xml">food.xml</a> file using
+xml-find(1) to stop at each product, and printing the data we find
+using xml-printf(1).
+
+<p>
+<pre><tt>
+% xml-find food.xml -name 'product' \
+        -exec xml-printf 'Price of %-20s: %5.2f\n' \
+        {-} ://product ://product@price ';'
+Price of Chicken             :  3.00
+Price of Lobster             : 11.50
+Price of Apple               :  0.20
+Price of Milk (2 litres)     :  1.09
+</tt></pre>
+
+<h2>Changing the structure of an XML file</h2>
+ 
+<p>
+
+Besides cat(1), one of the most useful shell commands for interactive
+use is head(1), which truncates its input after a few lines.  There
+are multiple generalizations of this idea for XML documents.
+
+<p>
+
+The xml-head(1) command has three main switches. The switch -t
+truncates the tags, ie displays only the first few tags (but still
+generates well formed XML). The -c switch truncates the text fields,
+ie displays only the first few characters wherever text is present,
+but leaves the tags as is, and the -n switch tuncates lines, so that
+each text field does not exceed a certain number of lines. All three
+main switches can be combined.
+
+<p>
+<pre><tt>
+% xml-head -t 3 People.xml
+&lt;?xml version="1.0"?&gt;
+&lt;People&gt;
+	&lt;Person Name="Fred Davis"&gt;
+		&lt;Address&gt;
+			&lt;LineOne&gt;4 Bushy Street&lt;/LineOne&gt;
+&lt;/Address&gt;
+&lt;/Person&gt;
+&lt;/People&gt;
+% xml-head -c 2 People.xml
+&lt;?xml version="1.0"?&gt;
+&lt;People&gt;
+	&lt;Person Name="Fred Davis"&gt;
+		&lt;Address&gt;
+		&lt;LineOne&gt;4 &lt;/LineOne&gt;
+		&lt;LineTwo&gt;Gr&lt;/LineTwo&gt;
+		&lt;County&gt;Ma&lt;/County&gt;
+		&lt;Country&gt;Ir&lt;/Country&gt;
+		&lt;/Address&gt;
+		&lt;TelNo&gt;+3&lt;/TelNo&gt;
+	&lt;/Person&gt;
+&lt;/People&gt;
+</tt></pre>
+
+<p>
+
+Another way to modify the structure of an XML file is with xml-cut(1).
+In traditional Unix, the cut(1) command prints columns from an input
+file that is viewed as a table (the exact meaning of a column is
+determined by switches). To understand xml-cut(1), think of a fully
+indented XML file, where each level of indentation is printed in its
+own column:
+
+<p>
+<pre><tt>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;1&nbsp;&nbsp;|&nbsp;2&nbsp;&nbsp;|&nbsp;3&nbsp;&nbsp;|&nbsp;4
+----------------------------------------
+&lt;?xml&nbsp;version="1.0"?&gt;|&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;|
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&lt;a&gt;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;|
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;|&lt;b&gt;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;|
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;|&lt;c&gt;&nbsp;|
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;|xyz
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;|&lt;/c&gt;|
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;|&lt;/b&gt;|&nbsp;&nbsp;&nbsp;&nbsp;|
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&lt;/a&gt;|&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;|
+</tt></pre>
+
+<p>
+
+Now we can print only the columns 2 and 4 as follows:
+
+<p>
+<pre><tt>
+% xml-echo -e '[a/b/c]xyz' | xml-cut -t 2,4
+&lt;?xml version="1.0"?&gt;
+&lt;root&gt;
+
+	&lt;b&gt;
+			xyz
+		&lt;/b&gt;
+
+&lt;/root&gt;
+</tt></pre>
+
+<p>
+
+Note that the closing tag &lt;/b&gt; in this example is out of
+alignment.  This makes sense, once you realize that the "xyz" text
+field really begins with the first newline after &lt;c&gt; and
+contains all the whitespace before &lt;/c&gt;.  As usual, xml-fmt(1)
+can be used to align the tags if necessary.
+
+<p>
+
+Structural surgery can also be performed using xml-rm(1), xml-cp(1)
+and xml-mv(1). These commands remove, copy, and move entire subtrees
+of an XML document.
+
+<p>
+<pre><tt>
+% xml-rm food.xml :/products/product[2]
+&lt;products&gt;
+
+  &lt;product price="3"&gt;Chicken&lt;/product&gt;
+  
+  &lt;product price=".20"&gt;Apple&lt;/product&gt;
+  &lt;product price="1.09"&gt;Milk (2 litres)&lt;/product&gt;
+
+&lt;/products&gt;
+% xml-cp food.xml :/products/product[2]/ \
+        People.xml ://TelNo/
+&lt;?xml version="1.0"?&gt;
+&lt;People&gt;
+	&lt;Person Name="Fred Davis"&gt;
+		&lt;Address&gt;
+			&lt;LineOne&gt;4 Bushy Street&lt;/LineOne&gt;
+			&lt;LineTwo&gt;Green Road&lt;/LineTwo&gt;
+			&lt;County&gt;Mayo&lt;/County&gt;
+			&lt;Country&gt;Ireland&lt;/Country&gt;
+		&lt;/Address&gt;
+		&lt;TelNo&gt;Lobster&lt;/TelNo&gt;
+	&lt;/Person&gt;
+&lt;/People&gt;
+% xml-mv food.xml :/products/product[3] \
+        food.xml :/products/product[1]/
+&lt;products&gt;
+
+  &lt;product price="3"&gt;&lt;product price=".20"&gt;Apple&lt;/product&gt;&lt;/product&gt;
+  &lt;product price="11.50"&gt;Lobster&lt;/product&gt;
+  
+  &lt;product price="1.09"&gt;Milk (2 litres)&lt;/product&gt;
+
+&lt;/products&gt;
+</tt></pre>
+
+
+<h2>Editing an XML stream</h2>
+
+<p>
+
+The last command to be discussed in this tutorial is xml-sed(1), which
+can be viewed as the swiss army knife of command line XML editing.
+
+<p>
+
+For search and replace operations, xml-sed(1) is invoked just like
+sed(1):
+ 
+<p>
+<pre><tt>
+% cat food.xml | xml-sed 's/Apple/Orange/'
+&lt;products&gt;
+
+  &lt;product price="3"&gt;Chicken&lt;/product&gt;
+  &lt;product price="11.50"&gt;Lobster&lt;/product&gt;
+  &lt;product price=".20"&gt;Orange&lt;/product&gt;
+  &lt;product price="1.09"&gt;Milk (2 litres)&lt;/product&gt;
+
+&lt;/products&gt;
+</tt></pre>
+
+<p>
+
+Although this cannot be seen here, the two commands xml-sed(1) and sed(1) 
+do differ. Whereas
+sed(1) will replace text anywhere within the XML file, even if it
+occurs within a tag name, xml-sed(1) as invoked above only replaces
+text that resides outside of tag elements. Moreover, xml-sed(1)
+understands editing constraints in the form of an XPATH. Compare:
+
+<p>
+<pre><tt>
+% cat food.xml | sed 's/e/E/g'
+&lt;products&gt;
+
+  &lt;product pricE="3"&gt;ChickEn&lt;/product&gt;
+  &lt;product pricE="11.50"&gt;LobstEr&lt;/product&gt;
+  &lt;product pricE=".20"&gt;ApplE&lt;/product&gt;
+  &lt;product pricE="1.09"&gt;Milk (2 litrEs)&lt;/product&gt;
+
+&lt;/products&gt;
+% cat food.xml | xml-sed 's/e/E/' ://product[3]
+&lt;products&gt;
+
+  &lt;product price="3"&gt;Chicken&lt;/product&gt;
+  &lt;product price="11.50"&gt;Lobster&lt;/product&gt;
+  &lt;product price=".20"&gt;ApplE&lt;/product&gt;
+  &lt;product price="1.09"&gt;Milk (2 litres)&lt;/product&gt;
+
+&lt;/products&gt;
+</tt></pre>
+
+<p>
+
+For 99% of editing tasks, the above is all you need to know about
+xml-sed(1).  For the remaining 1%, we have to make a digression.
+
+<p>
+
+Consider your favourite text file in Unix. It consists of a number of
+lines, separated by the newline character '\n'. This character isn't
+directly visible, but it has an important structural function. Without
+it, all the lines would join and the text file would be one long
+stream of words and symbols.
+
+<p>
+
+Whenever the text is shown on a terminal, this newline character
+is <i>interpreted</i>, rather than merely displayed as an ordinary
+character. This distinction between '\n' and, say, the letter 'a' is
+what makes sed(1) useful as a way to alter the structure of a text
+document.
+
+<p>
+
+Think about what happens if you search and replace all the occurrences
+of the letter 'a' with the letter 'A'. You get the same structural
+document, but with altered letters. Now suppose you replace each 'a'
+with '\n'. You have a document with a completely different number of
+text lines. It is by altering the embedded meta information represented
+by the character '\n' (using
+ordinary editing commands), that a structural alteration is obtained.
+
+<p>
+<pre><tt>
+% echo -e "Carol's cat carries carrots in a cart."
+Carol's cat carries carrots in a cart.
+% echo -e "CArol's cAt cArries cArrots in A cArt."
+CArol's cAt cArries cArrots in A cArt.
+% echo -e "C\\nrol's c\\nt c\\nrries c\\nrrots in \\n c\\nrt."
+C
+rol's c
+t c
+rries c
+rrots in 
+ c
+rt.
+</tt></pre>
+
+<p>
+
+What does all this mean for sed(1)?  In principle, editing a text
+document can be done without specialized (meta) commands for inserting or
+deleting a line, ie the only thing that is needed are commands for
+altering strings of characters.
+
+<p>
+
+The same principle also applies to xml-sed(1). There is no need for
+specialized commands that create or remove tags, attributes, subtrees
+etc, provided that the structural (meta) information which describes an XML
+document is embedded directly in the text being edited.  The language
+used by xml-sed(1) to embed the structure of an XML document is the
+same one used by xml-echo(1).
+
+<p>
+
+If you have an existing XML file, you can feed it to xml-unecho(1) to
+recover the embedded structure:
+
+<p>
+<pre><tt>
+% xml-unecho --xml-sed food.xml 
+[/products]\n\n  
+[/products/product@price=3]Chicken
+[/products]\n  
+[/products/product@price=11.50]Lobster
+[/products]\n  
+[/products/product@price=.20]Apple
+[/products]\n  
+[/products/product@price=1.09]Milk (2 litres)
+[/products]\n\n
+</tt></pre>
+
+<p>
+
+The --xml-sed switch tells xml-unecho(1) to print exactly what
+xml-sed(1) would see. Normally, xml-unecho(1) prints a slightly
+altered form which, if interpreted by xml-echo(1), would recover the
+original XML file.  The --xml-sed form is preferable for stream editing,
+ because the
+absolute path of the current node is always available, and this helps
+prevent side effects.
+
+<p>
+
+Now suppose we edit the above, using sed(1) (that's right, we're not
+using xml-sed(1) yet):
+
+<p>
+<pre><tt>
+% xml-unecho --xml-sed food.xml \
+        | sed 's/]Apple/@juicy=true]A [bold]big[..] orange/'
+[/products]\n\n  
+[/products/product@price=3]Chicken
+[/products]\n  
+[/products/product@price=11.50]Lobster
+[/products]\n  
+[/products/product@price=.20@juicy=true]A [bold]big[..] orange
+[/products]\n  
+[/products/product@price=1.09]Milk (2 litres)
+[/products]\n\n
+</tt></pre>
+
+<p>
+
+We've just inserted an extra attribute, and a new tag! But this isn't
+XML until we interpret it. Let's do everything at once using
+xml-sed(1) now:
+
+<p>
+<pre><tt>
+% cat food.xml \
+        | xml-sed 's/]Apple/@juicy=true]A [bold]big[..] orange/z'
+&lt;products&gt;
+
+  &lt;product price="3"&gt;Chicken&lt;/product&gt;
+  &lt;product price="11.50"&gt;Lobster&lt;/product&gt;
+  &lt;product price=".20" juicy="true"&gt;A &lt;bold&gt;big&lt;/bold&gt; orange&lt;/product&gt;
+  &lt;product price="1.09"&gt;Milk (2 litres)&lt;/product&gt;
+
+&lt;/products&gt;
+</tt></pre> 
+
+<p>
+
+The important ingredient here is the z flag in the s///z command. This
+flag tells xml-sed(1) to edit the full echo-leaf (the lines generated
+by xml-unecho(1) are called echo-leaves). If the z is missing, then the path and attribute
+information (wich are surrounded by square brackets []) are not
+editable. This restriction is solely for the benefit of casual users' feet.
+
+<p>
+
+The remaining aspects of xml-sed(1) are not very surprising if you
+already know sed(1). There is a pattern and a holding space (which contains
+the current echo-leaf), and each editing command can be addressed
+individually. The available editing commands are the same as for
+sed(1), with minor (and rather obvious) alterations to accomodate the 
+echo-leaf concept.
+
+<p>
+
+There is more to say but this tutorial is at an end. Happy hacking.
+
+</body>
+</html>

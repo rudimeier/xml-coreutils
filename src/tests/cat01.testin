@@ -1,0 +1,17 @@
+_PURPOSE_
+Simple xml-cat with root tag conversion.
+_INPUT_ 
+<?xml version="1.0"?>
+<greeting>
+Hello
+</greeting>
+_COMMAND_
+xml-cat
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<root>
+Hello
+</root>
+_END_

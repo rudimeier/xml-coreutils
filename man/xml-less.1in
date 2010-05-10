@@ -1,35 +1,64 @@
 \" t
 .TH XML-LESS 1 "xml-coreutils" "Version @VERSION@" ""
 .SH NAME
-xml-less \- interactively display an XML document
+xml-less \- interactively display an XML file on a terminal.
 .SH SYNOPSIS
 .HP
-.B xml-less
-[OPTION] FILE
+.B xml-less 
+.RI [ OPTION ]...
+.RI [ FILE ] 
 .SH DESCRIPTION
 .PP
 .B xml-less
-renders the XML document contained in FILE to the terminal, in a manner
-similar to less(1), but with more specialized capabilities which are 
-designed specifically for XML. 
-.PP
-.SH SOURCE
-.PP
-The source code for the latest version of xml-coreutils is available at the
+is a pager similar to 
+.BR less (1),
+but designed to display XML files exclusively. The input file is
+parsed on-the-fly, and can be displayed with colour coding, and
+folded/reformatted on demand. If no input file is given, the standard
+input is read.
+.P
+Folding can be used to quickly understand the general form of a document, by
+altering the indentation pattern of the currently displayed page.
+Other useful operations include word wrapping long lines, and showing/hiding
+attributes. 
+.P
+.B xml-less
+does not have to read the entire FILE before rendering begins, so it should
+be efficient for large input files provided that the chosen folding method 
+allows it.
+.P
+The key combinations recognized by 
+.B xml-less
+are modeled on those of 
+.BR less (1),
+with some extensions: folding is controlled by tab key, and 
+attributes, colours and wordwrap are chosen with the a, c and w keys
+respectively. The help page is accessed using the H key.
+.SH OPTIONS
+.SH EXIT STATUS
+xml-less returns 0 on success, or 1 otherwise.
+.SH EXAMPLE
+.EX
+xml-cat bigfile.xml | xml-grep 'abc' | xml-less
+.EE
+.SH BUGS
+Searching does not work yet.
+.SH AUTHORS
+.P
+.MT laird@lbreyer.com
+Laird A. Breyer
+.ME
+is the original author of this software.
+The source code (GPLv3 or later) for the latest version is available at the
 following locations: 
 .PP
-.na
-http://www.lbreyer.com/gpl.html
+.na 
+.UR http://www.lbreyer.com/gpl.html
+.UE
 .br
-http://dbacl.sourceforge.net
+.UR http://xml-coreutils.sourceforge.net
+.UE
 .ad
-.SH BUGS
-.PP
-The xml-coreutils collection is still incomplete, but already usable for limited
-tasks. 
-.SH AUTHOR
-.PP
-Laird A. Breyer <laird@lbreyer.com>
 .SH SEE ALSO
 .PP
 .BR xml-coreutils (7)

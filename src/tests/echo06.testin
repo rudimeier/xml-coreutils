@@ -1,0 +1,20 @@
+_PURPOSE_
+xml-echo \i and \I switches.
+_INPUT_ 
+_COMMAND_
+xml-echo -e  '[x/y]\I[z/u/v]abc[../..]\i[r/s]def'
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<x>
+	<y><z><u><v>abc</v></u>
+			<r>
+				<s>
+					def
+				</s>
+			</r>
+		</z>
+	</y>
+</x>
+_END_

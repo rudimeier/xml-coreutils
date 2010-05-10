@@ -1,0 +1,11 @@
+_PURPOSE_
+xml-echo \Q and \q switches.
+_INPUT_ 
+_COMMAND_
+xml-echo -en  '<tag>\Q<tag></tag>/\q</tag>'
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<root>&lt;tag&gt;<![CDATA[<tag></tag>/]]>&lt;/tag&gt;</root>
+_END_

@@ -1,0 +1,26 @@
+_PURPOSE_
+xml-printf a node (including children). Note spaces are squeezed. 
+_INPUT_ 
+<?xml version="1.0"?>
+<a>
+	A
+	<b>
+		B
+		<c>C</c>
+		D
+	</b>
+	E
+</a>
+_COMMAND_
+true ; (
+xml-printf "[%s]\n" "$TMP_PATH/input" :/a ;
+xml-printf "[%s]\n" "$TMP_PATH/input" :/a/b ;
+xml-printf "[%s]\n" "$TMP_PATH/input" :/a/b/c 
+)
+_EXITCODE_
+0
+_OUTPUT_
+[A B CD E ]
+[B CD ]
+[C]
+_END_

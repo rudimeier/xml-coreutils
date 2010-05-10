@@ -1,37 +1,64 @@
 \" t
 .TH XML-PRINTF 1 "xml-coreutils" "Version @VERSION@" ""
 .SH NAME
-xml-printf \- format and print XML data on standard output
+xml-printf \- format and print data in an XML file to the standard output.
 .SH SYNOPSIS
 .HP
-.B xml-printf
-[OPTION] FORMAT [[SOURCE]:XPATH]...
+.B xml-printf 
+.RI [ OPTION ]...
+.I FORMAT
+.RI [
+.RI [ FILE ]...
+.RI [: XPATH ]...
+.RI ]...
 .SH DESCRIPTION
 .PP
 .B xml-printf
-prints the string value of each XPATH according to FORMAT. 
-.PP
-Each SOURCE file is optional, and defaults to standard input. 
-Each XPATH represents an XML node which must exist in the input.
-.SH EXAMPLES
-.PP
-.IP
-
-.SH SOURCE
-.PP
-The source code for the latest version of this program is available at the
+prints the string values of selected nodes according to the FORMAT.
+The nodes are selected by the supplied XPATH(s) for each associated
+FILE, using the common unified command line convention described in 
+.BR xml-coreutils (7).
+.P
+The FORMAT string follows the usual rules of 
+.BR printf (1). In particular, if there are more arguments on 
+the command line than in the FORMAT, then FORMAT is reused.
+.SH OPTIONS
+.SH FORMAT
+.P
+The format string consists of ordinary text interspersed with % escape
+sequences. Among the recognized sequences are %s, %d, %f, which convert
+the corresponding node value into a string, an integer, or a floating point
+value. Each % escape sequence can also contain various formatting flags
+which control the minimum width and justification.
+.SH EXIT STATUS
+xml-printf returns 0 on success, or 1 otherwise.
+.SH EXAMPLE
+.P
+Print two different tag values on a single line:
+.EX
+xml-printf '%-20s $%5.2f\n' invoice.xml :/invoice/ref :/invoice/total
+.EE
+.P
+Print a list of all the entries associated with a particular tag:
+.EX
+xml-printf '%s' customers.xml ://name
+.EE 
+.SH AUTHORS
+.P
+.MT laird@lbreyer.com
+Laird A. Breyer
+.ME
+is the original author of this software.
+The source code (GPLv3 or later) for the latest version is available at the
 following locations: 
 .PP
-.na
-http://www.lbreyer.com/gpl.html
+.na 
+.UR http://www.lbreyer.com/gpl.html
+.UE
 .br
-http://dbacl.sourceforge.net
+.UR http://xml-coreutils.sourceforge.net
+.UE
 .ad
-.SH BUGS
-.PP
-.SH AUTHOR
-.PP
-Laird A. Breyer <laird@lbreyer.com>
 .SH SEE ALSO
 .PP
 .BR xml-coreutils (7)

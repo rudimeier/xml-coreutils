@@ -1,0 +1,39 @@
+_PURPOSE_
+xml-find default output
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+</a>
+_COMMAND_
+xml-find :/a/b/c
+_EXITCODE_
+0
+_OUTPUT_
+/a/b/c
+/a/b/c/d
+/a/b/c/e
+/a/b/c/f
+/a/b/c/g
+/a/b/c
+/a/b/c/d
+/a/b/c/e
+/a/b/c/f
+/a/b/c/g
+_END_

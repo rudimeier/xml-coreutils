@@ -1,0 +1,62 @@
+\" t
+.TH XML-GREP 1 "xml-coreutils" "Version @VERSION@" ""
+.SH NAME
+xml-grep \- print matching fragments as an XML file on the standard output.
+.SH SYNOPSIS
+.HP
+.B xml-grep 
+.RI [ OPTION ]...
+.I PATTERN
+.R [
+.RI [ FILE ]...
+.RI [: XPATH ]...
+.R ]...
+.SH DESCRIPTION
+.P
+.B xml-grep
+searches the input FILE(s) for text nodes and attribute values (not tag names)
+described by the regular expression PATTERN, and prints
+the matching fragments to the standard output, as an XML file.
+.SH OPTIONS
+.IP --invert-match
+print data NOT matching PATTERN.
+.IP --ignore-case
+when matching data, ignore upper and lowercase distinctions.
+.IP --extended-regexp
+assume extended regexp syntax in PATTERN.
+.IP --subtree
+always print the whole subtree context of a match.
+.IP --attributes
+print only matching attributes.
+.SH EXIT STATUS
+xml-grep returns 0 on success, or 1 otherwise.
+.SH EXAMPLE
+.P
+Print nodes (incl. children) which contain a pattern, without regard for case:
+.EX
+xml-grep -i 'wi.*ard' rincewind.xml 
+.EE
+.P
+Show nodes which do not match a pattern:
+.EX
+xml-grep -v '../02/2009' logfile.xml
+.EE
+.SH AUTHORS
+.P
+.MT laird@lbreyer.com
+Laird A. Breyer
+.ME
+is the original author of this software.
+The source code (GPLv3 or later) for the latest version is available at the
+following locations: 
+.PP
+.na 
+.UR http://www.lbreyer.com/gpl.html
+.UE
+.br
+.UR http://xml-coreutils.sourceforge.net
+.UE
+.ad
+.SH SEE ALSO
+.PP
+.BR xml-coreutils (7)

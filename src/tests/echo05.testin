@@ -1,0 +1,9 @@
+_PURPOSE_
+xml-echo an invalid XML sequence.
+_INPUT_ 
+_COMMAND_
+xml-echo -e '[x/y]abc[../../..]'
+_EXITCODE_
+1
+_OUTPUT_
+_END_

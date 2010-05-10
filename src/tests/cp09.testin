@@ -1,0 +1,31 @@
+_PURPOSE_
+xml-cp copy an attribute value.
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<k>J K P</k>
+	</b>
+</a>
+_COMMAND_
+xml-cp :/a/b[2]@bb stdout :/
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<root>M N</root>
+_END_

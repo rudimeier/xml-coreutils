@@ -1,5 +1,38 @@
 xml-coreutils NEWS -- history of user visible changes
-Copyright (C) 2006 Laird Breyer.
+Copyright (C) 2006-2010 Laird Breyer.
+
+xml-coreutils 0.8
+
+This release has seen a lot of work done relative to the previous release.
+The number of usable xml-commands has now grown to 18: xml-cat, xml-cp,
+xml-cut, xml-echo, xml-find, xml-fixtags, xml-fmt, xml-grep, xml-head, 
+xml-less, xml-ls, xml-mv, xml-printf, xml-rm, xml-sed, xml-strings, 
+xml-unecho, xml-wc.
+
+All the commands now follow a new, common unified command line convention
+for XML input files and paths, which is more versatile and fits in much
+better with the unix shell conventions. This means that the previously
+available commands xml-strings, xml-ls, xml-find, xml-cat were changed
+to follow the new convention.
+
+The previously ad-hoc approach to whitespace has been redesigned. 
+The xml-commands which output XML no longer pretty-print (even minimally) 
+their output: instead whitespace and existing formatting in the input is 
+preserved as far as possible. This new philosophy delegates all pretty
+printing to the single command xml-fmt, which is expected to grow in 
+functionality over time. Moreover, policy is now to use explicit TAB 
+characters for indenting instead of spaces (except possibly in xml-fmt). 
+The reason is that TABs allow cleaner/simpler postprocessing with other 
+programs.
+
+There is a new tempfile/signal processing subsystem, intended to ensure that
+all temporary files are deleted correctly, even if the process is killed.
+
+There also is a new test harness during the build stage, which can
+be run using "make check" in the usual way.
+
+The new XPATH facility can handle many common XPath constructions as
+described in the man page xml-coreutils(7).
 
 xml-coreutils 0.7
 

@@ -23,10 +23,11 @@
 #include "io.h"
 #include "mem.h"
 #include "entities.h"
-#include "error.h"
+#include "myerror.h"
 #include "wrap.h"
 #include "stdout.h"
 #include "stdparse.h"
+#include "mysignal.h"
 
 #include <string.h>
 #include <getopt.h>
@@ -39,7 +40,7 @@ extern char *progname;
 extern char *inputfile;
 extern long inputline;
 
-extern int cmd;
+extern volatile flag_t cmd;
 
 #include <stdio.h>
 
@@ -49,18 +50,22 @@ typedef struct {
   bool_t contin;
   unsigned int npos;
   unsigned int pd;
+  flag_t flags;
 } parserinfo_ls_t;
 
-#define LS_VERSION    0x01
-#define LS_HELP       0x02
+#define LS_VERSION     0x01
+#define LS_HELP        0x02
+#define LS_ATTRIBUTES  0x03
 #define LS_USAGE \
-"Usage: xml-ls [OPTION] [FILE]...\n" \
-"List information about the FILE, or standard input.\n" \
+"Usage: xml-ls [OPTION]... [[FILE]... [:XPATH]...]...\n" \
+"List structural information about the FILE(s), or standard input.\n" \
 "\n" \
 "      --help     display this help and exit\n" \
 "      --version  display version information and exit\n"
 
-void set_option(int op, char *optarg) {
+#define LS_FLAG_ATTRIBUTES 0x01
+
+void set_option_ls(int op, char *optarg, parserinfo_ls_t *pinfo) {
   switch(op) {
   case LS_VERSION:
     puts("xml-ls" COPYBLURB);
@@ -70,28 +75,23 @@ void set_option(int op, char *optarg) {
     puts(LS_USAGE);
     exit(EXIT_SUCCESS);
     break;
+  case 'a':
+  case LS_ATTRIBUTES:
+    setflag(&pinfo->flags,LS_FLAG_ATTRIBUTES);
+    break;
   }
 }
 
-/* replace \n[ t]* sequences with \n[ ]{indent} */
-/* bool_t indent_stdout(const char_t *buf, size_t buflen, unsigned int indent) { */
-/*   const char_t *p, *q, *e; */
-/*   if( buf && (buflen > 0) ) { */
-/*     p = q = buf; */
-/*     e = buf + buflen; */
-/*     while( p < e ) { */
-/*       p = find_delimiter(q, e, '\n'); */
-/*       write_stdout((byte_t *)q, p - q); */
-/*       p = skip_xml_whitespace(p, e); */
-/*       if( p < e ) { */
-/* 	q = p; */
-/* 	nputc_stdout(' ', indent); */
-/*       } */
-/*     }  */
-/*     return TRUE; */
-/*   } */
-/*   return FALSE; */
-/* } */
+void write_truncate_stdout(int max, const char_t *buf, size_t buflen) {
+  if( buf ) {
+    if( buflen < max ) {
+      squeeze_coded_entities_stdout(buf, buflen);
+    } else {
+      squeeze_coded_entities_stdout(buf, max);
+      puts_stdout("...");
+    }
+  }
+}
 
 result_t start_tag(void *user, const char_t *name, const char_t **att) {
   parserinfo_ls_t *pinfo = (parserinfo_ls_t *)user;
@@ -102,9 +102,24 @@ result_t start_tag(void *user, const char_t *name, const char_t **att) {
     d = pinfo->std.depth - pinfo->std.sel.mindepth;
     if( (d <= pinfo->pd) && (d >= 0) ) {
       putc_stdout('\n');
-      nputc_stdout(' ', pinfo->indent + d);
+      nputc_stdout('\t', pinfo->indent + d);
       putc_stdout('<');
       puts_stdout(name);
+
+      if( checkflag(pinfo->flags,LS_FLAG_ATTRIBUTES) ) {
+
+#define TRUNCATE_ATTS 10
+	while( att && *att ) {
+	  putc_stdout(' ');
+	  puts_stdout(att[0]);
+	  puts_stdout("=\"");
+	  write_truncate_stdout(TRUNCATE_ATTS, att[1], strlen(att[1]));
+	  putc_stdout('\"');
+	  att += 2;
+	}
+
+      }
+
       /* also include the node position in original document */
 /*       nprintf_stdout(32, " pos=\"%d\"/>", pinfo->npos); */
       puts_stdout( (d < pinfo->pd) ? ">" : "/>");
@@ -121,7 +136,7 @@ result_t end_tag(void *user, const char_t *name) {
     d = pinfo->std.depth - pinfo->std.sel.mindepth;
     if( (d < pinfo->pd) && (d >= 0) ) {
       putc_stdout('\n');
-      nputc_stdout(' ', pinfo->indent + d);
+      nputc_stdout('\t', pinfo->indent + d);
       puts_stdout("</");
       puts_stdout(name);
       putc_stdout('>');
@@ -142,13 +157,8 @@ result_t chardata(void *user, const char_t *buf, size_t buflen) {
 	p = skip_xml_whitespace(buf, buf + buflen);
 	if( p < buf + buflen ) {
 	  putc_stdout('\n');
-	  nputc_stdout(' ', pinfo->indent + d + 1);
-	  if( buflen < TRUNCATE ) {
-	    squeeze_stdout((byte_t *)buf, buflen);
-	  } else {
-	    squeeze_stdout((byte_t *)buf, TRUNCATE);
-	    puts_stdout("...");
-	  }
+	  nputc_stdout('\t', pinfo->indent + d + 1);
+	  write_truncate_stdout(TRUNCATE, buf, buflen);
 	  pinfo->contin = TRUE;
 	}
       }
@@ -157,20 +167,33 @@ result_t chardata(void *user, const char_t *buf, size_t buflen) {
   return PARSER_OK;
 }
 
-result_t pidata(void *user, const char_t *target, const char_t *data) {
-  /* just ignore */
-  return PARSER_OK;
+bool_t create_parserinfo_ls(parserinfo_ls_t *pinfo) {
+  bool_t ok = TRUE;
+  if( pinfo ) {
+
+    memset(pinfo, 0, sizeof(parserinfo_ls_t));
+    ok &= create_stdparserinfo(&pinfo->std);
+
+    pinfo->std.setup.flags = STDPARSE_MIN1FILE; 
+    pinfo->std.setup.cb.start_tag = start_tag;
+    pinfo->std.setup.cb.end_tag = end_tag;
+    pinfo->std.setup.cb.chardata = chardata;
+
+    pinfo->indent = 1;
+    pinfo->contin = FALSE;
+    pinfo->pd = 1;
+
+
+    return ok;
+  }
+  return FALSE;
+} 
+
+bool_t free_parserinfo_ls(parserinfo_ls_t *pinfo) {
+  free_stdparserinfo(&pinfo->std);
+  return TRUE;
 }
 
-result_t dfault(void *user, const char_t *data, size_t buflen) {
-  parserinfo_ls_t *pinfo = (parserinfo_ls_t *)user;
-  if( pinfo ) { 
-    if( 0 < pinfo->std.depth ) {
-      write_stdout((byte_t *)data, buflen);
-    }
-  }
-  return PARSER_OK;
-}
 
 int main(int argc, char **argv) {
   signed char op;
@@ -179,43 +202,40 @@ int main(int argc, char **argv) {
   struct option longopts[] = {
     { "version", 0, NULL, LS_VERSION },
     { "help", 0, NULL, LS_HELP },
+    { "attributes", 0, NULL, LS_ATTRIBUTES },
+    { 0 }
   };
 
   progname = "xml-ls";
-  inputfile = "stdin";
+  inputfile = "";
   inputline = 0;
 
-  while( (op = getopt_long(argc, argv, "",
-			   longopts, NULL)) > -1 ) {
-    set_option(op, optarg);
+  if( create_parserinfo_ls(&pinfo) ) {
+
+    while( (op = getopt_long(argc, argv, "a",
+			     longopts, NULL)) > -1 ) {
+      set_option_ls(op, optarg, &pinfo);
+    }
+
+    init_signal_handling();
+    init_file_handling();
+
+    open_stdout();
+    puts_stdout(get_headwrap());
+    puts_stdout(get_open_root());
+
+    stdparse(MAXFILES, argv + optind, (stdparserinfo_t *)&pinfo);
+
+    putc_stdout('\n');
+    puts_stdout(get_close_root());
+    puts_stdout(get_footwrap());
+    close_stdout();
+
+    exit_file_handling();
+    exit_signal_handling();
+    
+    free_parserinfo_ls(&pinfo);
   }
-
-  init_file_handling();
-
-  memset(&pinfo, 0, sizeof(parserinfo_ls_t));
-  pinfo.std.setup.flags = 0; /* STDPARSE_ALLNODES; */
-  pinfo.std.setup.cb.start_tag = start_tag;
-  pinfo.std.setup.cb.end_tag = end_tag;
-  pinfo.std.setup.cb.chardata = chardata;
-  pinfo.std.setup.cb.pidata = NULL; /* pidata; */
-  pinfo.std.setup.cb.comment = NULL;
-  pinfo.std.setup.cb.dfault = NULL; /* dfault; */
-
-  pinfo.indent = 1;
-  pinfo.contin = FALSE;
-  pinfo.pd = 1;
-
-
-  open_stdout();
-  puts_stdout(get_headwrap());
-
-  stdparse(optind, argv, (stdparserinfo_t *)&pinfo);
-
-  putc_stdout('\n');
-  puts_stdout(get_footwrap());
-  close_stdout();
-
-  exit_file_handling();
 
   return EXIT_SUCCESS;
 }

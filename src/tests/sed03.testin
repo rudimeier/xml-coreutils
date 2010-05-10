@@ -1,0 +1,17 @@
+_PURPOSE_
+xml-sed echo-leaf substitution test.
+_INPUT_ 
+<?xml version="1.0"?>
+<greeting>
+	hello
+</greeting>
+_COMMAND_
+xml-sed 's/e/E/zg'
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<grEEting>
+	hEllo
+</grEEting>
+_END_

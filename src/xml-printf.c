@@ -22,13 +22,22 @@
 #include "parser.h"
 #include "io.h"
 #include "mem.h"
-#include "error.h"
+#include "myerror.h"
 #include "xpath.h"
 #include "xmatch.h"
+#include "xpredicate.h"
+#include "xattribute.h"
 #include "tempcollect.h"
 #include "stringlist.h"
 #include "format.h"
 #include "stdout.h"
+#include "filelist.h"
+#include "stdparse.h"
+#include "tempvar.h"
+#include "cstring.h"
+#include "mysignal.h"
+
+extern const char_t xpath_magic[];
 
 #include <string.h>
 #include <getopt.h>
@@ -41,7 +50,7 @@ extern char *progname;
 extern char *inputfile;
 extern long inputline;
 
-extern int cmd;
+extern volatile flag_t cmd;
 
 #include <stdio.h>
 
@@ -49,6 +58,10 @@ typedef struct {
   tempcollect_t *tc;
   bool_t exists;
   bool_t active;
+  bool_t newline;
+  const char_t *fmt;
+  char_t fmt_type;
+  char_t val_type;
   unsigned int mindepth;
 } argstatus_t;
 
@@ -59,79 +72,43 @@ typedef struct {
   size_t mark;
 } printf_args_t;
 
-typedef struct {
-  unsigned int depth;
-  unsigned int maxdepth;
-  xpath_t cp;
-  xmatcher_t xm;
-  const char_t *format;
-  stringlist_t files;
-  tclist_t collectors;
-  printf_args_t args;
-} parserinfo_printf_t;
-
-#define PRINTF_VERSION    0x01
-#define PRINTF_HELP       0x02
-#define PRINTF_USAGE0 \
-"Usage: xml-printf FORMAT [[FILE]:XPATH]...\n" \
-"Print the text value of XPATH(s) according to FORMAT.\n" \
-"\n" \
-"      --help     display this help and exit\n" \
-"      --version  display version information and exit\n" \
-"This command prints the string FORMAT only, but FORMAT can contain\n" \
-"C printf style formatting instructions which specify how subsequent\n" \
-"arguments are converted for output.\n"
-
-#define PRINTF_USAGE1 \
-"Each subsequent argument represents the text value of an XML subtree,\n" \
-"located in the XML document FILE and given by XPATH. If FILE is omitted,\n" \
-"it is assumed that standard input contains a well formed XML document and\n" \
-"XPATH is a path within that document.\n" \
-"SOURCE is an optional XML file path, and XPATH represents a node relative\n" \
-"to SOURCE, or if omitted, relative to the XML document in standard input.\n" \
-"Only the text value of each XPATH is substituted.\n"
-
-void set_option(int op, char *optarg) {
-  switch(op) {
-  case PRINTF_VERSION:
-    puts("xml-printf" COPYBLURB);
-    exit(EXIT_SUCCESS);
-    break;
-  case PRINTF_HELP:
-    puts(PRINTF_USAGE0);
-    puts(PRINTF_USAGE1);
-    exit(EXIT_SUCCESS);
-    break;
-  }
-}
-
-
 bool_t create_printf_args(printf_args_t *pargs) {
   pargs->count = 0;
   return create_mem(&pargs->status, &pargs->max, sizeof(argstatus_t), 16);      
 }
 
-void add_printf_args(printf_args_t *pargs, tempcollect_t *tc) {
-  if( pargs->count >= pargs->max ) {
-    grow_mem(&pargs->status, &pargs->max, sizeof(argstatus_t), 16); 
+void add_printf_args(printf_args_t *pargs, tempcollect_t *tc, const char_t *fmt) {
+  argstatus_t *as;
+  if( pargs && tc && fmt ) {
+    if( pargs->count >= pargs->max ) {
+      grow_mem(&pargs->status, &pargs->max, sizeof(argstatus_t), 16); 
+    }
+    if( pargs->count < pargs->max ) {
+      as = &pargs->status[pargs->count];
+      as->tc = tc;
+      as->exists = FALSE;
+      as->active = FALSE;
+      as->newline = FALSE;
+      as->fmt = fmt;
+
+      for(; fmt[0] && fmt[1]; fmt++);
+      as->fmt_type = *fmt;
+      as->val_type = '\0';
+
+      pargs->count++;
+    }  
   }
-  if( pargs->count < pargs->max ) {
-    pargs->status[pargs->count].tc = tc;
-    pargs->status[pargs->count].exists = FALSE;
-    pargs->status[pargs->count].active = FALSE;
-    pargs->count++;
-  }  
 }
 
-bool_t find_printf_args(printf_args_t *pargs, const char_t *path, size_t *n) {
+bool_t find_printf_args(printf_args_t *pargs, const char_t *path, int *n) {
   size_t i;
   const char_t *p;
   char_t *q;
-  char_t delim = ':';
+
   if( pargs && path && n) {
     for(i = pargs->mark; i < pargs->count; i++) {
       p = pargs->status[i].tc->name;
-      q = strchr(p, delim);
+      q = strchr(p, *xpath_magic);
       if( q ) {
 	q++;
 	if( strcmp(path, q) == 0) {
@@ -150,134 +127,346 @@ bool_t free_printf_args(printf_args_t *pargs) {
   return free_mem(&pargs->status, &pargs->max);
 }
 
-bool_t init_parserinfo_printf(parserinfo_printf_t *pinfo) {
-  if( pinfo ) {
-    memset(pinfo, 0, sizeof(parserinfo_printf_t));
-    if( create_xpath(&pinfo->cp) && 
-	create_xmatcher(&pinfo->xm) &&
-	create_stringlist(&pinfo->files) && 
-	create_tclist(&pinfo->collectors) &&
-	create_printf_args(&pinfo->args) ) {
-      return TRUE;
+bool_t check_printf_args(printf_args_t *args) {
+  size_t i;
+  bool_t ok = TRUE;
+  if( args ) {
+    for(i = 0; i < args->count; i++) {
+      if( !args->status[i].exists ) {
+	errormsg(E_ERROR, "tag not found: %s\n", 
+		 args->status[i].tc->name);
+	ok = FALSE;
+      }
     }
+    return ok;
   }
   return FALSE;
 }
 
-bool_t free_parserinfo_printf(parserinfo_printf_t *pinfo) {
-  if( pinfo ) {
-    free_xpath(&pinfo->cp);
-    free_xmatcher(&pinfo->xm);
-    free_stringlist(&pinfo->files);
-    free_printf_args(&pinfo->args);
-    free_tclist(&pinfo->collectors);
+
+typedef struct {
+  stdparserinfo_t std;
+  flag_t flags;
+
+  cstringlst_t files;
+  cstringlst_t *xpaths;
+  int n;
+  stringlist_t ufiles;
+  stringlist_t cids;
+  tclist_t collectors;
+  xmatcher_t xm;
+  xpredicatelist_t xp;
+  xattributelist_t xa;
+  tempvar_t tv; /* for text values */
+  tempvar_t av; /* for attribute values */
+
+  const char_t *format;
+  stringlist_t fmt;
+  charbuf_t pcs;
+  printf_args_t args;
+} parserinfo_printf_t;
+
+#define PRINTF_FLAG_ACTIVE   0x01
+#define PRINTF_FLAG_CHARDATA 0x02
+
+#define PRINTF_VERSION       0x01
+#define PRINTF_HELP          0x02
+#define PRINTF_USAGE0 \
+"Usage: xml-printf [OPTION]... FORMAT [[FILE]... [:XPATH]...]...\n" \
+"Print the text value(s) of XPATH(s) according to FORMAT.\n" \
+"\n" \
+"      --help     display this help and exit\n" \
+"      --version  display version information and exit\n" \
+"This command prints the string FORMAT only, but FORMAT can contain\n" \
+"C printf style formatting instructions which specify how subsequent\n" \
+"arguments are converted for output.\n"
+
+#define PRINTF_USAGE1 \
+"Each subsequent argument represents the text value of an XML subtree,\n" \
+"located in the XML document FILE and given by XPATH. If FILE is omitted,\n" \
+"it is assumed that standard input contains a well formed XML document and\n" \
+"XPATH is a path within that document.\n" \
+"SOURCE is an optional XML file path, and XPATH represents a node relative\n" \
+"to SOURCE, or if omitted, relative to the XML document in standard input.\n" \
+"Only the text value of each XPATH is substituted.\n"
+
+void set_option_printf(int op, char *optarg) {
+  switch(op) {
+  case PRINTF_VERSION:
+    puts("xml-printf" COPYBLURB);
+    exit(EXIT_SUCCESS);
+    break;
+  case PRINTF_HELP:
+    puts(PRINTF_USAGE0);
+    puts(PRINTF_USAGE1);
+    exit(EXIT_SUCCESS);
+    break;
+  }
+}
+
+bool_t read_format(parserinfo_printf_t *pinfo, const char_t *format) {
+  const char_t *p, *q;
+  char_t *r;
+  if( pinfo && format ) {
+    pinfo->format = format;
+    r = create_charbuf(&pinfo->pcs, 2 * strlen(format) + 1);
+    while( *format ) {
+      p = skip_delimiter(format, NULL, '%');
+      if( *p ) {
+	if( p[1] == '%' ) {
+	  p += 2;
+	} else {
+	  q = skip_unescaped_delimiters(p + 1, NULL, "sdfgu", '\0') + 1;
+	  add_stringlist(&pinfo->fmt, r, STRINGLIST_DONTFREE);
+	  while( p < q ) {
+	    *r++ = *p++;
+	  }
+	  *r++ = '\0';
+	}
+      }
+      format = p;
+    }
+
     return TRUE;
   }
   return FALSE;
 }
 
-bool_t optimize_args(parserinfo_printf_t *pinfo, int n, int argc, char **argv) {
-  char_t *file;
-  char_t *path;
-  char_t delim = ':';
-  if( pinfo && argv[n] ) {
-    /* argc - n has enough room for all files or paths + 1 */
-    pinfo->format = argv[n++];
-    while( argv[n] ) {
-      file = argv[n];
-      path = strchr(file, delim);
-      if( path ) { *path = '\0'; }
-      if( !*file ) { file = "stdin"; }
-      add_unique_stringlist(&pinfo->files, file);
-      if( path ) { *path = delim; }
-      n++;
+
+/* for each file%fmt:xpath, create a collector id */
+bool_t make_cids(parserinfo_printf_t *pinfo) {
+  int i, f, x, s;
+  cstring_t name;
+  const char_t *format;
+  if( pinfo && pinfo->files && pinfo->xpaths) {
+    i = 0;
+    for(f = 0; f < pinfo->n; f++) {
+      for(x = 0; pinfo->xpaths[f][x]; x++) {
+
+	format = get_stringlist(&pinfo->fmt, i++ % pinfo->fmt.num);
+
+	s = strlen(pinfo->files[f]) + strlen(pinfo->xpaths[f][x]) + 
+	  strlen(format) + 2;
+
+	create_cstring(&name, "", s);
+	vstrcat_cstring(&name, pinfo->files[f], format, xpath_magic, 
+			pinfo->xpaths[f][x], NULLPTR);
+
+	add_stringlist(&pinfo->cids, p_cstring(&name), STRINGLIST_FREE); 
+
+      }
     }
     return TRUE;
   }
   return FALSE;
 }
 
-void prepare_matcher(parserinfo_printf_t *pinfo, const char *inputfile, 
-		   int n, int argc, char **argv) {
-  char_t *file;
-  char_t *path;
-  char_t delim = ':';
+void unique_files(parserinfo_printf_t *pinfo) {
+  int i;
+  if( pinfo ) {
+    for(i = 0; i < pinfo->n; i++) {
+      add_unique_stringlist(&pinfo->ufiles, pinfo->files[i], 
+			    STRINGLIST_DONTFREE);
+    }
+  }
+}
+
+void assign_file_collectors(parserinfo_printf_t *pinfo, const char *inputfile) {
+  int i, f, x, w;
+  const char *name, *fmt;
   tempcollect_t *tc;
+
   if( pinfo && inputfile ) {
     reset_xmatcher(&pinfo->xm);
+    reset_xpredicatelist(&pinfo->xp);
+    reset_xattributelist(&pinfo->xa);
     /* anything below pinfo->collectors.num is for another file */
     pinfo->args.mark = pinfo->collectors.num;
-    while( argv[n] ) {
-      file = argv[n];
-      path = strchr(file, delim);
-      if( ((path == file) && (strcmp(inputfile, "stdin") == 0)) ||
-	  (strncmp(file, inputfile, strlen(inputfile)) == 0) ) {
-	if( path ) { 
-	  path++; /* skip delim */
-	  if( push_unique_xmatcher(&pinfo->xm, path) ) {
-	    if( add_tclist(&pinfo->collectors, argv[n], 64, 1024*1024) ) { 
+    i = 0;
+    for(f = 0; f < pinfo->n; f++) {
+      if( strcmp(inputfile, pinfo->files[f]) == 0 ) {
+	for(x = 0; pinfo->xpaths[f][x]; x++) {
+	  if( push_unique_xmatcher(&pinfo->xm, pinfo->xpaths[f][x],
+				   XMATCHER_DONTFREE) &&
+	      add_xpredicatelist(&pinfo->xp, pinfo->xpaths[f][x]) &&
+	      add_xattributelist(&pinfo->xa, pinfo->xpaths[f][x]) ) {
+	    name = get_stringlist(&pinfo->cids, i);
+	    fmt = get_stringlist(&pinfo->fmt, i % pinfo->fmt.num);
+	    i++;
+
+	    if( add_tclist(&pinfo->collectors, name,
+			   MINVARSIZE, MAXVARSIZE) ) { 
+
 	      tc = get_last_tclist(&pinfo->collectors);
 	      if( tc ) {
-		add_printf_args(&pinfo->args, tc);
+		add_printf_args(&pinfo->args, tc, fmt);
 		continue;
 	      }
 	    }
-	    errormsg(E_FATAL, "couldn't create tempcollector for %s\n", argv[n]);
-	    exit(EXIT_FAILURE);
+	    errormsg(E_FATAL, "couldn't create tempcollector for %s\n", name);
 	  }
 	}
       }
-      n++;
     }
-  }
-}
-
-void activate_collectors(parserinfo_printf_t *pinfo) {
-  size_t n;
-  size_t w;
-  const char_t *p;
-
-  if( pinfo ) {
+    /* now prepare */
     for(w = pinfo->args.mark; w < pinfo->args.count; w++) {
       pinfo->args.status[w].active = FALSE;
     }
-    if( find_first_xmatcher(&pinfo->xm, pinfo->cp.path, &n) ) {
-      do {
-	p = get_xmatcher(&pinfo->xm, n);
-	if( p && find_printf_args(&pinfo->args, p, &w) ) {
-	  argstatus_t *as = &pinfo->args.status[w];
-	  as->exists = TRUE;
-	  as->active = TRUE;
-	  as->mindepth = pinfo->depth;
-/* 	  printf("<path=%s, %s active=%d>\n",  */
-/* 		 pinfo->cp.path, */
-/* 		 pinfo->args.status[w].tc->name, */
-/* 		 pinfo->args.status[w].active); */
-	}
-      } while( find_next_xmatcher(&pinfo->xm, pinfo->cp.path, &n) );
-    }
   }
 }
 
+bool_t activate_collector(argstatus_t *as, parserinfo_printf_t *pinfo, bool_t activate, char_t val_type) {
+  if( as ) {
+    if( activate ) {
+      as->newline |= as->exists && !as->active; /* separate disjoint nodes */
+      as->active = TRUE;
+      as->mindepth = pinfo->std.depth;
 
-void write_active_collectors(printf_args_t *pargs, 
-			     unsigned int depth, byte_t *buf, size_t buflen) {
-  size_t i;
-  for(i = pargs->mark; i < pargs->count; i++) {
-    argstatus_t *as = &pargs->status[i];
-    if( as->active && depth == as->mindepth) {
-      write_tempcollect(as->tc, buf, buflen);
+      if( !as->exists ) {
+	as->exists = TRUE;
+	as->val_type = val_type;
+      }
+
+      /* printf("<path=%s, %s active=%d type=%c>\n", */
+      /* 	     string_xpath(&pinfo->std.cp), */
+      /* 	     as->tc->name, */
+      /* 	     as->active, */
+      /* 	     as->val_type); */
+    } else {
+      as->active = FALSE;
+    }
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/* activate/deactivate all collectors of interest.  
+ * 
+ * If attrib != NULL, then we take care to not activate/deactivate
+ * chardata collectors, only attribute value collectors.
+ * If attrib == NULL, then activation/deactivation applies to all 
+ * types of collectors.
+ */
+bool_t activate_collectors(parserinfo_printf_t *pinfo, const char_t *attrib) {
+  int w, z, m;
+  const xattribute_t *xa;
+  const char_t *path;
+  bool_t v, tmatch, amatch, active = FALSE;
+
+  if( pinfo ) {
+    for(z = pinfo->args.mark; z < pinfo->args.count; z++) {
+      path = string_xpath(&pinfo->std.cp);
+      m = match_no_att_no_pred_xpath(pinfo->xm.xpath[z], NULL, path);
+      v = valid_xpredicate(&pinfo->xp.list[z]);
+      xa = get_xattributelist(&pinfo->xa, z);
+      tmatch = (!attrib && !xa->begin && 
+		((m == 0) || (m == -1)) && v);
+      amatch = (attrib && xa->begin && xa->precheck && 
+		(m == 0) && v && match_xattribute(xa, attrib));
+
+      if( attrib && xa->begin ) { 
+	if( amatch ) {
+	  /* this collector must be activated */
+	  if( find_printf_args(&pinfo->args, 
+			       get_xmatcher(&pinfo->xm, z), &w) ) {
+	    activate_collector(&pinfo->args.status[w], pinfo, TRUE, 'a');
+	    active = TRUE;
+	  }
+	} else {
+	  /* this collector must be deactivated */
+	  activate_collector(&pinfo->args.status[z], pinfo, FALSE, 'a');
+	}
+      } else if( !attrib ) { 
+	if( tmatch ) {
+	  /* this collector must be activated */
+	  if( find_printf_args(&pinfo->args, 
+			       get_xmatcher(&pinfo->xm, z), &w) ) {
+	    activate_collector(&pinfo->args.status[w], pinfo, TRUE, 't');
+	    active = TRUE;
+	  }
+	} else {
+	  /* this collector must be deactivated */
+	  activate_collector(&pinfo->args.status[z], pinfo, FALSE, 't');
+	}
+      }
     }
   }
+  return active;
+}
+
+bool_t write_active_collectors(printf_args_t *pargs, tempvar_t *tv) {
+  size_t i;
+  const char *s;
+  long int l;
+  unsigned long int u;
+  double g;
+  bool_t ok = TRUE;
+
+  if( pargs && tv && !is_empty_tempvar(tv) ) {
+
+    for(i = pargs->mark; i < pargs->count; i++) {
+      argstatus_t *as = &pargs->status[i];
+      if( as->active && (as->val_type == *tv->tc.name) ) {
+	if( as->newline ) {
+	  /* printf("NEWLINE\n"); */
+	  putc_tempcollect(as->tc, '\n');
+	  as->newline = FALSE;
+	}
+	switch(as->fmt_type) {
+	case 's':
+	  s = string_tempvar(tv);
+	  ok &= nprintf_tempcollect(as->tc, strlen(s), as->fmt, s);
+	  break;
+	case 'd':
+	  l = long_tempvar(tv);
+	  ok &= nprintf_tempcollect(as->tc, 16, as->fmt, l);
+	  break;
+	case 'u':
+	  u = ulong_tempvar(tv);
+	  ok &= nprintf_tempcollect(as->tc, 16, as->fmt, u);
+	  break;
+	case 'f':
+	case 'g':
+	  g = double_tempvar(tv);
+	  ok &= nprintf_tempcollect(as->tc, 16, as->fmt, g);
+	  break;
+	default: /* do nothing */
+	  ok = FALSE;
+	  break;
+	}
+      }
+    }
+    reset_tempvar(tv);
+    return ok;
+  }
+  return FALSE;
+}
+
+tempcollect_t *find_collector(parserinfo_printf_t *pinfo, int i) {
+  const char *name;
+  tempcollect_t *tc = NULL;
+  if( pinfo ) {
+    name = get_stringlist(&pinfo->cids, i);
+    if( name ) {
+      tc = find_byname_tclist(&pinfo->collectors, name);
+      if( !tc ) {
+	errormsg(E_FATAL, "cannot find data for %s\n", name);
+      }
+    }
+  }
+  return tc;
 }
 
 result_t start_tag(void *user, const char_t *name, const char_t **att) {
   parserinfo_printf_t *pinfo = (parserinfo_printf_t *)user;
   if( pinfo ) {
-    pinfo->depth++;
-    pinfo->maxdepth = MAX(pinfo->depth, pinfo->maxdepth);
-    push_tag_xpath(&pinfo->cp, name);
-    activate_collectors(pinfo);
+    update_xpredicatelist(&pinfo->xp, string_xpath(&pinfo->std.cp), att);
+    update_xattributelist(&pinfo->xa, att);
+
+    clearflag(&pinfo->flags,PRINTF_FLAG_CHARDATA);
+    write_active_collectors(&pinfo->args, &pinfo->tv);
+    flipflag(&pinfo->flags, PRINTF_FLAG_ACTIVE, 
+	     activate_collectors(pinfo, NULL));
   }
   return PARSER_OK;
 }
@@ -285,9 +474,24 @@ result_t start_tag(void *user, const char_t *name, const char_t **att) {
 result_t end_tag(void *user, const char_t *name) {
   parserinfo_printf_t *pinfo = (parserinfo_printf_t *)user;
   if( pinfo ) {
-    pinfo->depth--;
-    pop_xpath(&pinfo->cp);
-    activate_collectors(pinfo);
+    clearflag(&pinfo->flags,PRINTF_FLAG_CHARDATA);
+    write_active_collectors(&pinfo->args, &pinfo->tv);
+    flipflag(&pinfo->flags, PRINTF_FLAG_ACTIVE, 
+	     activate_collectors(pinfo, NULL));
+  }
+  return PARSER_OK;
+}
+
+result_t attribute(void *user, const char_t *name, const char_t *value) {
+  parserinfo_printf_t *pinfo = (parserinfo_printf_t *)user;
+  if( pinfo ) { 
+    flipflag(&pinfo->flags, PRINTF_FLAG_ACTIVE, 
+	     activate_collectors(pinfo, name));
+    if( true_and_clearflag(&pinfo->flags,PRINTF_FLAG_ACTIVE) ) {
+      /* printf("squeezing-attribute[%.*s]\n", strlen(value), value); */
+      squeeze_tempvar(&pinfo->av, value, strlen(value));
+      write_active_collectors(&pinfo->args, &pinfo->av);
+    }
   }
   return PARSER_OK;
 }
@@ -295,183 +499,210 @@ result_t end_tag(void *user, const char_t *name) {
 result_t chardata(void *user, const char_t *buf, size_t buflen) {
   parserinfo_printf_t *pinfo = (parserinfo_printf_t *)user;
   if( pinfo ) {
-    write_active_collectors(&pinfo->args, pinfo->depth, (byte_t *)buf, buflen);
+    flipflag(&pinfo->flags, PRINTF_FLAG_ACTIVE, 
+	     activate_collectors(pinfo, NULL));
+    if( checkflag(pinfo->flags,PRINTF_FLAG_ACTIVE) ) {
+      /* note: squeezing removes whitespace aggressively. 
+       * If the selection contains several tags, this will remove
+       * the whitespace that is contained *in between* the tags.
+       * this is correct if xml-printf believes space between
+       * tags is non-significant, but wrong otherwise. What to do?
+       */
+      /* printf("squeezing-chardata[%.*s]\n", buflen, buf); */
+      squeeze_tempvar(&pinfo->tv, buf, buflen);
+    }
   }
   return PARSER_OK;
 }
 
-result_t procdata(void *user, const char_t *target, const char_t *data) {
-  /* just ignore */
-  return PARSER_OK;
+bool_t start_file_fun(void *user, const char_t *file, const char_t **xpaths) {
+  parserinfo_printf_t *pinfo = (parserinfo_printf_t *)user;
+  if( pinfo ) {
+    /* prepare all the collectors associated with file */
+    assign_file_collectors(pinfo, file);
+  }
+  return TRUE;
 }
 
-result_t dfault(void *user, const char_t *data, size_t buflen) {
-/*   parserinfo_printf_t *pinfo = (parserinfo_printf_t *)user; */
-/*   if( pinfo ) {  */
-/*     if( 0 < pinfo->depth ) { */
-/*       write_stdout((byte_t *)data, buflen); */
-/*     } */
-/*   } */
-  return PARSER_OK;
-}
 
-bool_t check_printf_format(const char_t *format, int n) {
-  if( format ) {
-    while(*format) {
-      if( *format == '%' ) {
-	format++;
+/* count % args to see if all are used */
+bool_t check_printf_format(parserinfo_printf_t *pinfo) {
+  const char_t *s;
+  int n, f, x;
+  if( pinfo ) {
+
+    for(n = 0, f = 0; f < pinfo->n; f++) { 
+      for(x = 0; pinfo->xpaths[f][x]; x++) {
+	n++;
+      }
+    }
+    for(s = pinfo->format; *s; s++) {
+      if( *s == '%' ) {
+	s++;
 	n--;
-	if( *format == '%' ) {
+	if( *s == '%' ) {
 	  n++;
 	}
-	if( !*format ) {
+	if( !*s ) {
 	  break;
 	}
       }
-      format++;
     }
     return (n == 0);
   }
   return FALSE;
 }
 
-bool_t write_printf_format(parserinfo_printf_t *pinfo, int n, int argc, char **argv) {
+bool_t write_printf_format(parserinfo_printf_t *pinfo, bool_t reuse) {
   size_t i;
+  const char_t *p, *q;
   tempcollect_t *tc;
-  bool_t ok = TRUE;
-  const char_t *p;
-  char_t *q;
-  for(i = 0; i < pinfo->args.count; i++) {
-    if( !pinfo->args.status[i].exists ) {
-      errormsg(E_ERROR, "node missing in input %s\n", 
-	       pinfo->args.status[i].tc->name);
-      ok = FALSE;
+  if( pinfo ) {
+    if( check_printf_args(&pinfo->args) ) {
+      i = 0; 
+      do {
+	p = pinfo->format;
+	q = strpbrk(p, "%\\");
+	while( q ) {
+	  write_stdout((byte_t *)p, q - p);
+	  p = q + 1;
+	  if( *q == '%' ) {
+	    q++;
+	    if( *q == '%' ) {
+	      putc_stdout('%');
+	    } else {
+	      tc = find_collector(pinfo, i);
+	      if( tc ) {
+		write_stdout_tempcollect(tc);
+	      }
+	      p = skip_unescaped_delimiters(p, NULL, "sdfgu", '\0');
+	      i++;
+	    }
+	  } else if( *q == '\\' ) {
+	    putc_stdout(convert_backslash(q));
+	  }
+	  p++;
+	  q = strpbrk(p, "%\\");
+	}
+	puts_stdout(p);
+      } while( reuse && (i < pinfo->cids.num) );
+
+      return TRUE;
     }
   }
-  if( ok ) {
-    p = pinfo->format;
-    q = strpbrk(p, "%\\");
-    i = n + 1; 
-    while( q ) {
-      write_stdout((byte_t *)p, q - p);
-      p = q + 1;
-      switch(*q) {
-      case '%':
-	switch(*p) {
-	case '%':
-	  puts_stdout("%");
-	  break;
-	case 's':
-	  tc = find_byname_tclist(&pinfo->collectors, argv[i]);
-	  if( !tc ) {
-	    errormsg(E_FATAL, "cannot find data for %s\n", argv[i]);
-	  }
-	  squeeze_stdout_tempcollect(tc);
-	  i++;
-	  break;
-	default:
-	  errormsg(E_FATAL, "format specifier %%%c not supported\n", *p);
-	  break;
-	}
-	break;
-      case '\\':
-	putc_stdout(convert_backslash(q));
-	break;
-      }
-      p++;
-      q = strpbrk(p, "%\\");
-    }
-    puts_stdout(p);
+  return FALSE;
+}
+
+bool_t create_parserinfo_printf(parserinfo_printf_t *pinfo) {
+  bool_t ok = TRUE;
+  if( pinfo ) {
+    memset(pinfo, 0, sizeof(parserinfo_printf_t));
+    ok &= create_stdparserinfo(&pinfo->std);
+    
+    pinfo->std.setup.flags = STDPARSE_ALLNODES;
+    pinfo->std.setup.cb.start_tag = start_tag;
+    pinfo->std.setup.cb.end_tag = end_tag;
+    pinfo->std.setup.cb.chardata = chardata;
+    pinfo->std.setup.cb.attribute = attribute;
+
+    pinfo->std.setup.start_file_fun = start_file_fun;
+
+    ok &= create_stringlist(&pinfo->cids);
+    ok &= create_stringlist(&pinfo->ufiles);
+    ok &= create_xmatcher(&pinfo->xm);
+    ok &= create_xpredicatelist(&pinfo->xp);
+    ok &= create_xattributelist(&pinfo->xa);
+    ok &= create_tempvar(&pinfo->tv, "t", MINVARSIZE, MAXVARSIZE);
+    ok &= create_tempvar(&pinfo->av, "a", MINVARSIZE, MAXVARSIZE);
+    ok &= create_tclist(&pinfo->collectors);
+    ok &= create_printf_args(&pinfo->args);
+    ok &= create_stringlist(&pinfo->fmt);
+
+    return ok;
+  }
+  return FALSE;
+}
+
+bool_t free_parserinfo_printf(parserinfo_printf_t *pinfo) {
+  if( pinfo ) {
+    free_stdparserinfo(&pinfo->std);
+    free_stringlist(&pinfo->cids);
+    free_stringlist(&pinfo->ufiles);
+    free_xmatcher(&pinfo->xm);
+    free_xpredicatelist(&pinfo->xp);
+    free_xattributelist(&pinfo->xa);
+    free_tempvar(&pinfo->tv);
+    free_tempvar(&pinfo->av);
+    free_tclist(&pinfo->collectors);
+    free_printf_args(&pinfo->args);
+    free_stringlist(&pinfo->fmt);
+    free_charbuf(&pinfo->pcs);
     return TRUE;
   }
   return FALSE;
 }
 
 int main(int argc, char **argv) {
-  parser_t parser;
-  stream_t strm;
   signed char op;
-  callback_t callbacks;
   parserinfo_printf_t pinfo;
-  int n;
   int exit_value = EXIT_FAILURE;
   struct option longopts[] = {
-    { "version", 0, NULL, PRINTF_VERSION }
+    { "version", 0, NULL, PRINTF_VERSION },
+    { "help", 0, NULL, PRINTF_HELP },
+    { 0 }
   };
 
+  filelist_t fl;
+
   progname = "xml-printf";
-  inputfile = "stdin";
+  inputfile = "";
   inputline = 0;
   
   while( (op = getopt_long(argc, argv, "",
 			   longopts, NULL)) > -1 ) {
-    set_option(op, optarg);
+    set_option_printf(op, optarg);
   }
 
+  init_signal_handling();
   init_file_handling();
 
-  if( create_parser(&parser, &pinfo) ) {
+  if( create_parserinfo_printf(&pinfo) ) {
 
-    memset(&callbacks, 0, sizeof(callback_t));
-    callbacks.start_tag = start_tag;
-    callbacks.end_tag = end_tag;
-    callbacks.chardata = chardata;
-    callbacks.pidata = NULL; /* procdata; */
-    callbacks.comment = NULL;
-    callbacks.dfault = NULL; /* dfault; */
-    setup_parser(&parser, &callbacks);
-
-    init_parserinfo_printf(&pinfo);
-    optimize_args(&pinfo, optind, argc, argv);
-    if( !check_printf_format(pinfo.format, argc - optind - 1) ) {
-      errormsg(E_FATAL, "wrong format string\n");
+    if( !read_format(&pinfo, argv[optind++]) ) {
+      errormsg(E_FATAL, "bad format string.\n");
     }
 
-    n = 0;
-    while( !checkflag(cmd,CMD_QUIT) ) {
-      inputfile = (char_t *)get_stringlist(&pinfo.files, n);
+    if( create_filelist(&fl, -1, argv + optind, 0) ) {
 
-      if( inputfile && open_file_stream(&strm, inputfile) ) {
+      pinfo.files = getfiles_filelist(&fl);
+      pinfo.xpaths = getxpaths_filelist(&fl);
+      pinfo.n = getsize_filelist(&fl);
 
-	prepare_matcher(&pinfo, inputfile, optind, argc, argv);
+      /* if( !check_printf_format(&pinfo) ) { */
+      /* 	errormsg(E_FATAL, "argument count mismatch in format string\n"); */
+      /* } */
 
-	while( !checkflag(cmd,CMD_QUIT) && 
-	       read_stream(&strm, getbuf_parser(&parser, strm.blksize), strm.blksize) ) {
+      if( make_cids(&pinfo) ) {
 
-	  if( !do_parser(&parser, strm.buflen) ) {
-	    if( (pinfo.depth == 0) && (pinfo.maxdepth > 0) ) {
-	      /* we're done */
-	      break;
-	    } 
-	    errormsg(E_FATAL, 
-		     "invalid XML at line %d, column %d (byte %ld, depth %d) of %s\n",
-		     parser.cur.lineno, parser.cur.colno, 
-		     parser.cur.byteno, pinfo.depth, inputfile);
+	unique_files(&pinfo);
+	open_stdout();
+	if( stdparse2(pinfo.ufiles.num, pinfo.ufiles.list, 
+		      NULL /* no stdselect */, &pinfo.std) ) {
+
+	  if( write_printf_format(&pinfo, TRUE) ) {
+	    exit_value = EXIT_SUCCESS;
 	  }
 
 	}
-
-	close_stream(&strm);
-      } else {
-	break;
+	close_stdout();
       }
-      n++;
-      reset_parser(&parser);
+      free_filelist(&fl);
     }
-
-    open_stdout();
-    if( write_printf_format(&pinfo, optind, argc, argv) ) {
-      exit_value = EXIT_SUCCESS;
-    }
-    close_stdout();
-
-
-    free_xmatcher(&pinfo.xm);
-    free_parser(&parser);
     free_parserinfo_printf(&pinfo);
   }
 
   exit_file_handling();
+  exit_signal_handling();
 
   return exit_value;
 }

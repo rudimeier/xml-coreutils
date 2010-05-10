@@ -1,0 +1,69 @@
+_PURPOSE_
+xml-fmt (pro-forma, this will almost certainly evolve)
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+</a>
+_COMMAND_
+xml-fmt
+_EXITCODE_
+0
+_OUTPUT_
+<a>
+	<b bb="A B">
+		<c>
+			<d>
+			CD E
+			</d>
+			<e>
+			FG
+			</e>
+			<f>
+			H
+			</f>
+			<g>
+			I
+			</g>
+		</c>
+		<h>
+		JK L
+		</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>
+			OD E
+			</d>
+			<e>
+			FG
+			</e>
+			<f>
+			H
+			</f>
+			<g>
+			I
+			</g>
+		</c>
+		<h>
+		JK P
+		</h>
+	</b>
+</a>
+_END_

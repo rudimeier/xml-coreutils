@@ -8,8 +8,8 @@ might arise over time, it makes sense to list them here. Also, the
 essay will become outdated over time, while the explanations
 listed here should stay current. 
 
-In particular, none of the requirements are set in stone. They can be
-changed if sufficiently good reasons are found, but they should
+In particular, none of the requirements below are set in stone. They
+can be changed if sufficiently good reasons are found, but they should
 reflect the current state or aims of the source code.
 
 Note that the emphasis here is on design decisions intended to keep
@@ -69,6 +69,79 @@ which expects XML data throughout, changing a switch could cause hard
 to find catastrophic failure. Fixing the media helps prevent this kind
 of problem.
 
+WHITESPACE HANDLING
+
+There is not much to say about it that's definitive for now.  The XML
+specification defines whitespace to be nonsignificant, unless it is
+significant :)
+
+The traditional answer is to use the DTD for guidance on the tags
+where space is significant or not, but this requires understanding DTDs,
+which is beyond the scope of xml-coreutils (this will never be in scope,
+the overhead is unjustifiable, and of course the output of x2x commands
+removes all DTD information anyway).
+
+Thus the only reasonable approach I think is to keep all whitespace 
+characters in between tags, BUT: 
+
+1) This is a pain in the backside for visual processing, it's much nicer
+to have properly indented output. I think visual processing is important
+for shell tools, as it's important to be able to see what the various
+stages of a pipeline are doing etc. 
+
+2) This need not apply to all commands equally. In traditional unix, the
+text processing tools don't preserve whitespace consistently. In 
+xml-coreutils, there is a distinction between xml-x2u and xml-x2x, and
+strictly speaking, perhaps only x2x ought to be very strict about whitespace.
+
+3) Ideally, there needs to be a mechanism to choose if all whitespace is 
+preserved or if it is normalized aggressively like in a web browser (ie
+where any sequence of whitespace is replaced by a single space). 
+
+4) All of the above is too complicated to answer straightaway. It's best
+to build the commands ad-hoc, and later (before the 1.0 release) a 
+comprehensive and coherent policy on whitespace can be worked out, 
+and retrofitted.
+
+
+COMMON UNIFIED COMMAND LINE CONVENTION
+
+Most xml-coreutils require one or more XML files and/or XPaths on their
+command line. For such commands, it makes sense to have
+a unified set of conventions that are easy to interpret.
+The unified command line convention takes the form
+
+command [OPTIONS] [[FILE]... [:XPATH]...]...
+
+This means that after all the options are given, what remains on 
+the command line is a sequence of FILES and XPATHS. The XPATHS are
+each preceded by a colon, so they are easy to recognize. Each XPATH
+applies to the immediately preceding run of FILES, up to but not
+including a previous set of XPATHS. For example:
+
+command f1 f2 f3 :x1 :x2 f4 f5 :x6 :x7
+
+is interpreted as
+
+command (f1,x1,x2) (f2,x1,x2) (f3,x1,x2) (f4,x6,x7) (f5,x6,x7)
+
+The command then operates on file f1 with an XPath defined by the 
+combination of x1 and x2, also operates on f2 with the same xpath, etc.
+
+Moreover, in the special case when the first command line operand is an XPATH,
+the file is implicitly defined to be STDIN. When a file is not followed
+by any XPATH, the default ":/" is assumed.
+
+The unified interpretation explained above is designed to interact nicely
+with various shell conventions and expansions. 
+
+For example, by separating paths and files (rather than expecting
+a single string, eg "f1:x1") it is possible to use wildcards for the 
+filenames, and also to use tab completion in the bash shell. 
+Furthermore, the initial colon for the XPATHS also effectively 
+prevents the shell from trying to complete them, since filenames
+which begin with a colon are very rare on *nix systems.
+
 
 LIST OF XML-COREUTILS COMMANDS REQUIREMENTS
 
@@ -102,6 +175,20 @@ xml-cat [OPTION] [FILE]...
   with an error if this cannot be guaranteed.
 
 * Input data should not be "fixed" to ensure output is valid XML.
+
+* By default, the root wrapper is removed (but this should be
+  overridable with switches). It cannot be kept in the document, as
+  this causes a problem where the depth of all the elements is
+  incremented with each invocation of xml-cat, and this would be
+  unusable: for example, adding an xml-cat invocation near the
+  beginning of a pipeline would invalidate the operations that occur
+  later in the pipeline. Another idea which isn't desirable is to keep
+  the removed wrappers automatically as comments in the output
+  document. This solves the depth problem, but also means that users
+  are tempted to consider data in comments as significant. Taken to
+  extremes, programs will try to supplement the XML data structure with 
+  comment information, ie parsing rules becomes ad-hoc.
+
 
 XML-ECHO (xml-u2x)
 
@@ -142,26 +229,79 @@ xml-echo [OPTION] [STRING]...
   sibling tags.
 
 * By default, tags and chardata are indented by level
-  automatically. However, the switch \c can be used on any level to
+  automatically. However, the switch \I can be used on any level to
   prevent indentation of all deeper levels (previous levels are still
   indented as before). The switch takes effect immediately after it is
   used.
 
-* The opposite to \c is \i, which indents all subsequent tags and
+* The opposite to \I is \i, which indents all subsequent tags and
   lines following a \n. If \i immediately precedes a closing tag, then
   its effect is delayed until after the tag is closed, for visual
   reasons.
+
+* Indentation uses tab characters. Some people (me ;-) may find this ugly, 
+  but if the output is piped to a subsequent unix command, it will be 
+  slightly easier to parse. Interoperability takes precedence over prettyness.
+  Use xml-fmt if you want pretty. You can also change your terminal's tabsize
+  if you want.
+
+* The \Q and \q switch CDATA on and off respectively. By default, it
+  is off. Note that CDATA is not a verbatim environment, all it does
+  is allow uninterpreted specials such as <,>,= etc.
 
 * Each node in a path can be immediately followed by attributes. An
   attribute must have the form @name=value. For example
   [x/y@one=two/z] expands to <x><y one="two"><z>. The quotes marks are
   added automatically and should not be written.
 
+* xml-echo should support doctypes, but this is not quite as trivial
+  as one might think. Doctypes (can) have a complicated structure, and
+  only occur in the XML prolog. These constraints should be reflected
+  in the xml-echo interface, so that a user cannot eg insert a doctype
+  in the middle of the document. Ideally, doctypes should be clearly
+  separated in a separate command line switch.  However, another
+  problem is that the xml-echo notation is also used by xml-sed, so
+  this must fit in nicely with the echo-leaf concept, and again it
+  should not be easy for xml-sed to insert a doctype in the middle of
+  the document either.  Finally, the biggest problem with doctypes is
+  the inclusion of an internal subset which can be arbitrarily
+  complicated.  These are the main reasons why xml-echo doesn't yet
+  include support for doctypes.
+    
+* xml-echo should support processing instructions. This could be
+  implemented as part of the XPATH mechanism, ie [?pitarget=data]
+  represents <?pitarget data?>, but the notation should make
+  attribute/value pairs easy: (test case: how do you write <?xml
+  version="1.0"?>). Also, if this is embedded in an XPATH, then we
+  don't want a visual clash with the existing attribute/value
+  mechanism. Alternatively, we can have (?pitarget:data) which would
+  be embedded in the chardata part of an echo-leaf, and have something
+  like (?pitarget:@att1=value1@att2=value2).  The disadvantage here is
+  that () is a common pair of characters in data, and this would
+  require a lot of escaping which I don't think is a good idea (note:
+  [] for XPATHS was chosen because it is less common than () in text,
+  and because {} clashes with the shell substitution mechanism). Also,
+  using : is not a good idea, because it causes problems with namespaces.
+  Here's another possibility: in XPATH, we embed [?pitarget(data)], including
+  the possibility [?pitarget(@att1=value1@att2=value2)]. In this 
+  case, the usual prolog would become [?xml(@version=1.0@charset=UTF-8)].
+  Unfortunately the closing parenthesis is necessary to separate the 
+  @= pairs which belong to the processing instruction from the @= pairs
+  which belong to the current tag.
+
+* xml-echo now supports processing instructions, but as a separate
+  construct [?pitarget xyz uvw @att1=value1@att2=value2], which cannot
+  be imbedded in an XPATH.
+  The previously discussed ideas were actually tried out, but imbedding the PI
+  in an ordinary XPATH is more awkward than it seems at first. It's cleaner
+  to for the code to check if the [] starts with a ? and switch to PI mode.
+  As a bonus, the () have been dropped in favour of whitespace.
+
 XML-PRINTF (xml-x2u)
 
 This command has the signature
 
-xml-printf [OPTION] FORMAT [[SOURCE]:XPATH]...
+xml-printf [OPTION] FORMAT [[SOURCE]... [:XPATH]...]...
 
 * The FORMAT string is a printf style template for outputting pieces
  of XML documents referenced by the XPATH options listed after it.
@@ -202,23 +342,25 @@ XML-STRINGS (xml-x2u)
 
 This command has the signature
 
-xml-strings [OPTION] [[FILE]:[XPATH]]...
+xml-strings [OPTION] [[FILE]... [:XPATH]...]...
 
 * It is designed to operate in a similar way to strings.
 
-* The default behaviour extracts the chardata only.
+* The default behaviour extracts the chardata only. To extract the attribute
+  values, use an XPATH.
 
 * There are (will be) switches to extract virtually any type of 
   string data.
 
-* Output is not pretty printed, but can be organized depending on
-  switches.
+* Output is organized in lines. Each line contains a single chardata or
+  attribute value. If a chardata contains more than one line, it is folded.
+  This default is designed for optimal reuse by subsequent processors.
 
 XML-LS (xml-x2x)
 
 This command has the signature
 
-xml-ls [OPTION] [[FILE]:[XPATH]]...
+xml-ls [OPTION] [[FILE]... [:XPATH]...]...
 
 * It is intended to operate on the XML hierarchy like ls operates
   on the directory hierarchy.
@@ -238,9 +380,350 @@ XML-FIND (xml-x2u)
 
 This command has the signature
 
-xml-find [OPTION] [FILE][:XPATH] [EXPRESSION]
+xml-find [[FILE]... [:XPATH]...]... [EXPRESSION]
 
 * It operates more or less like find, but if no file is given,
   operates on stdin.
 
 * The default EXPRESSION is to print the node paths encountered.
+
+XML-GREP (xml-x2x)
+
+This command has the signature
+
+xml-grep [OPTIONS] PATTERN [[FILE]... [:XPATH]...]...
+
+* It operates like grep, but whereas grep matches text within lines,
+  xml-grep matches text within string values. The string values can
+  be either char data or attribute values.
+
+* Like grep, some context is printed. Whereas grep prints the line
+  containing the match, xml-grep prints the hierarchy (tags + string values)
+  which arrives at the match. Like grep, there will be options to
+  modify this basic behaviour, but the basic behaviour should be 
+  reasonably intuitive for a wide range of common XML formats, both
+  structured (eg SOAP) or free form (eg DOCBOOK).
+
+* The default output tries to be as close to the input as possible,
+  so overlapping subtrees remain overlapping.
+
+* The input root tag is ignored and renamed <root>, just like with xml-cat.
+  This makes sense, since a xml-grep fragment is not a full document, so
+  keeping the old tag would (probably) be misleading. Also, if several
+  documents are xml-grepped together, the same problems arise as with 
+  xml-cat, which is why the same solution is used. Finally, xml-grep should
+  also be idempotent. 
+
+* By default, xml-grep does not print the full subtree which contains
+  the search pattern. This seems counterintuitive at first, but 
+  makes sense.
+
+* The xml-grep counterpart to the context display of grep is 
+  to show (for example) the full subtree which matches the pattern.
+  Other context ideas are worth exploring.
+
+* The current implementation needs an overhaul to allow even a simple
+  set of context switches.
+
+XML-FMT (xml-x2x)
+
+This command has the signature
+
+xml-fmt [OPTIONS] [FILE]
+
+* It reformats (pretty prints) the input file.
+
+* There can be only one input file (maybe stdin), otherwise
+  this would emulate xml-cat in some sense.
+
+* It is anticipated that there will be many styles of output
+  (selected by options) which must be chosen manually. For example
+  SGML type output or fully indented output should be possible. Consider
+  the following fragment:
+
+  <text>
+  This is some <b>bold</b> and <i>italic</i> text.
+  </text>
+
+  The above can be viewed as a kind of SGML style. The fully indented output
+  would look like this:
+
+  <text>
+    This is some
+    <b>
+      bold
+    </b>
+    and
+    <i>
+      italic
+    </i>
+    text.
+  </text>
+
+* There is no way to decide the best output automatically, but for
+  well known document DTDs, the xml-fmt command could maintain a list
+  of appropriate styles.
+
+* This command is not intended to replace more advanced stylesheet mechanisms.
+
+* The xml-fmt command has no physical page width limitation. The
+  standard coreutils fold command can already break lines at spaces to
+  ensure a certain width for display. There is no need for a separate
+  xml-fold command, since spacing and formatting is not significant in
+  XML.
+
+ 
+XML-WC (xml-x2u)
+
+This command has the signature
+
+xml-wc [OPTIONS] [[FILE]... [:XPATH]...]...
+
+* It prints simple "word count" statistics, ie number of nodes, maximum depth
+  etc. An exact list of desirable statistics is not clear.
+
+* By using XPATHS, the statistics for subtrees can be printed.
+
+XML-CUT (xml-x2x)
+
+This command has the signature
+
+xml-cut OPTION... [[FILE] [:XPATH]...]
+
+* The family of coreutils commands cut, paste, join are related and operate
+  on a list of strings as a kind of table with meaningful columns (columns
+  can be bytes, characters or delimited strings). For the xml counterparts,
+  we think of a tree as an overlapping set of strings, where each string
+  is defined from the root up to a single leaf. The "columns" of this 
+  string can be the characters of the string value of the leaf,
+  or a set of fields delimited by an appropriate character.
+
+* The XPATHs are used to cut "horizontally" the unique file FILE.
+  Together with the "vertical" column oriented cut behaviour, this
+  gives fine grained control over what should be displayed.
+
+* Besides the above, we can also think of the ancestor tags of a leaf
+  as another kind of field, which can be cut as before. This is a new
+  kind of cut (-t switch) which has no counterpart in coreutils.  More
+  precisely, the depth of each node element (ie tag or string value)
+  is used like a field number, so that printing element 3 means
+  printing all tags with depth 3, and all string values with depth 3.
+
+* The resulting leaves can still be overlapped meaningfully, 
+  because the cut operation performs the same task on all the elements
+  of a given column. 
+
+* After extensive testing, I believe that tampering with the amount of
+  whitespace in the XML is very disorienting (tags move about, and
+  it is hard to follow what is happening). Therefore, xml-cut
+  does not follow the behaviour of cut too closely, see next point.
+
+* In the case of field cuts (-f switch), we depart from the cut
+  convention of delimiting fields by tabs only (by default), in favour
+  of the awk convention of delimiting fields by any whitespace.  It
+  seems cleanest to proceed as follows: think of the given
+  string-value of each node as a collection of islands (strings of
+  non-whitespace) in a sea of whitespace. We print both the whitespace
+  and the selected islands (fields).
+
+* Both the -c (character) and -f (field) switches operate on lines
+  delimited by newlines. This allows intuitive behaviour in case the 
+  XML contains a minitable of data.
+
+XML-SED (xml-x2x)
+
+This command has the signature
+
+xml-sed [OPTION]... SCRIPT [[FILE] [:XPATH]...]
+
+* Ordinary sed operates on echo-lines ie ordinary strings with control
+  sequences that can be interpreted by echo. Similarly, xml-sed operates
+  on echo-leaves, ie tree leaves (chardata) with embedded control sequences
+  that can be interpreted by xml-echo.
+
+* xml-sed works on each echo-leaf in turn. Echo-leaves occur in between
+  every two tags of any sort. The leaf is converted into
+  a simple string compatible with the xml-echo format. More precisely,
+  the node path is surrounded by square brackets and prepended to the 
+  string value. Then xml-sed operates more or less like ordinary sed on
+  the combined string (aka "echo-leaf"). The result is interpreted as an
+  xml-echo type set of instructions for printing an XML fragment. 
+  Then, xml-sed loads the next echo-leaf and the next cycle begins. 
+
+* The command xml-unecho converts the leafnodes into the string format
+  used by xml-sed. The --unecho flag shows the pattern space as an
+  XML comment (useful for debugging)
+
+* just like xml-echo, the xml-sed command takes care of bookkeeping so
+  that two consecutive outputs represent compatible fragments of 
+  XML, and tags aren't opened/closed unnecessarily. 
+
+* Example: on input, the current echoleaf representation might be
+  "[/root/greeting]Hello", which could be modified by xml-sed to
+  be "[/root/greeting]Goodbye". In this case, the XML structure
+  remains unchanged. But xml-sed could also change the structure, eg
+  "[/root/lang/en/greeting]Hello". In this case, the old greeting
+  tag has been moved, and two new tags inserted. Finally, a whole
+  subtree could be populated, eg
+  "[/root/lang/en/desc]English[../greeting]Hello"
+
+* If the structure is changed, then the current node path as read
+  from the input file might no longer make sense subsequently. However,
+  for the programmer it's easier to work with the paths that are expected
+  from the input file instead of keeping track of relative changes. Therefore,
+  after each echoleaf is processed, the current path is reset to what
+  it is in the input document.
+
+* A switch should exist to disable processing echoleaves whose 
+  string value is empty. 
+
+* The sed command defines a "line" as a string ending in '\n'. This
+  is used by some commands (N,D,P) and allows multiple input lines
+  to be kept in the pattern space simultaneously. In xml-sed, the
+  "line" equivalent is a string beginning with a path, ie '[path]string'.
+  So the role of '\n' at the end is taken by '[' at the beginning. 
+
+XML-UNECHO (xml-x2u)
+
+This command has the signature
+
+xml-unecho [OPTION]... [[FILE]... [:XPATH]...]...
+
+* Each leaf node is converted into a string. If the string is xml-echo'd
+  we should get the original file back (up to whitespace equivalence).
+
+XML-RM (xml-x2x)
+
+This command has the signature
+
+xml-rm [OPTION]... [[FILE]... [:XPATH]...]...
+
+* The XPATH is not optional, both for safety and because deleting
+  a complete file is not really the point of this command.
+
+* There are two ways to think of what it should do:
+  1) for each input FILE, the FILE is overwritten without the removed nodes.
+  2) for each input FILE, the FILE is copied to STDOUT without the removed nodes.
+
+* Both 1) and 2) make sense, but only one can be the default. 2) is
+  less "dangerous" so it should be the default.
+
+* For 1), since STDIN is not a writable file, this file is simply ignored.
+  There is a limitation of exactly one STDOUT files as well, since
+  otherwise we do not get well formed XML on STDOUT.
+
+* For 2), there is a natural limitation of exactly one file of any sort
+  on input, to guarantee that STDOUT is well formed XML. 
+
+* When files are modified, this must be done atomically. It is better
+  to not write any modifications to a file rather than risk file corruption.
+
+* For 1), the resulting file may be no longer valid XML. For 2), the STDOUT
+  always receives a generic xml header without a DTD, so this is not
+  a problem.
+
+XML-CP (xml-x2x)
+
+This command has the signature
+
+xml-cp [OPTION]... [[FILE]... [:XPATH]...]... TARGET [:XPATH]...
+
+* Only the final file receives the copied data.
+
+* The data is copied into every tree branch of TARGET that matches an 
+  XPATH when the --multi option is set. Maybe this should be the default?
+
+* If no match was found, then the data is copied into the root of
+  the final file (at the end, just before the closing root tag).
+
+* The --replace option removes the target contents and overwrites
+  with the copied data. If the target is
+  a tag, then the tag is removed. If the target is the contents of 
+  a tag (ie the xpath ends in /) then only the contents is removed.
+
+* The normal rules do not apply to the target root tag, which cannot
+  be removed.  If the root tag could be removed, there is no guarantee
+  that the copied data would be well formed XML. Doing this would require
+  inspecting the copied data. Maybe in the future.
+
+* This command is not as useful as it could be for now. When the XPATH
+  supports simple predicates, this situation will improve. 
+
+XML-MV (xml-x2x)
+
+This command has the signature
+
+xml-mv [OPTION]... [[FILE]... [:XPATH]...]... TARGET [:XPATH]...
+
+* This is a combination of xml-rm and xml-cp. The code is shared,
+  and the meanings of the switches are synchronized to preserve
+  the relationship as much as possible.
+
+XML-XARGS (xml-x2u)
+
+This command has the signature
+
+xml-xargs [OPTIONS] [[FILE]... [:XPATH]...]... [EXPRESSION]
+
+* It operates more or less like xargs, but with XML input. More precisely,
+  a list of nodes is selected, and their values are converted into 
+  strings, which are placed in the ARGV array associated with EXPRESSION.
+
+* I have doubts that this command is useful. It can be simulated easily
+  by combining ordinary xargs with a command which extracts the XML data
+  and writes it to a list of strings on STDOUT, eg xml-printf etc.
+
+XML-FIXTAGS (xml-u2x)
+
+This command has the signature
+
+xml-fixtags [OPTIONS] [FILE]
+
+* It performs dumb conversion of FILE into an XML format that is well formed.
+  Emphasis on dumb, and local impact. 
+
+* This is not intended to replace eg HTML Tidy, but is necessary because
+  the xml-coreutils cannot run on slightly broken XML input files.
+
+* Also, Tidy refuses to output a document if it is unsure how to repair it.
+  This makes it unsuitable for automatic processing. xml-fixtags reliably
+  returns an XML document, it just might not look like the original :)
+
+* If a big input file has a small area which is incorrectly reconstructed,
+  this need not matter for the majority of intended subsequent processing 
+  operations.
+
+XML-FILE (xml-x2u)
+
+This command has the signature
+
+xml-file [OPTIONS] [FILE]...
+
+* It identifies the structure of an XML file (eg infers a DTD, schema, etc)
+
+* Unlike file(1), which only reads the first few bytes of a file,
+  this command would need to read more, and possibly the whole file.
+
+* A universal parser is impossible of course, but a dictionary of known
+  XML formats can be managed.
+
+* A simple version of xml-file would report the DTD and/or identify the
+  contents based on the name of the root tag.
+
+* A complex version of xml-file would read the whole file and 
+  identify the best fitting schema.
+
+* The xml-file command can be helpful in identifying subset fragments
+  of an XML document, eg if a word processing document contains embedded
+  MathML or SVG.
+
+XML-AWK (xml-x2u)
+
+This command has the signature
+
+xml-file [OPTIONS] [SCRIPT] [FILE]...
+
+* The language is a cousin of awk, but with modifications designed to enhance
+  the ability to reference, extract and manipulate XML subtrees.
+
+  

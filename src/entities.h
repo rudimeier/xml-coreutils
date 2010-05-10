@@ -25,15 +25,43 @@
 #include "config.h"
 #endif
 
+#include <ctype.h>
+#include <string.h>
+
 const char_t *get_entity(char_t c);
 const char_t *find_next_special(const char_t *begin, const char_t *end);
 __inline__ static bool_t xml_whitespace(char_t c) {
   return ((c == 0x20) || (c == 0x09) || (c == 0x0D) || (c == 0x0A));
 }
+__inline__ static bool_t xml_startnamechar(char_t c) {
+  return (isalpha(c) || (c == 0x5F) || (c == 0x3A));
+}
+__inline__ static bool_t xml_namechar(char_t c) {
+  return (isalnum(c) || (c == 0x2E) || (c == 0x2D) || (c == 0x5F) || (c == 0x3A) || (c & 0x80)); /* simplified extended ascii, to be fixed */
+}
+
+__inline__ static bool_t xml_pubidchar(char_t c) {
+  return (isalnum(c) || (strchr(" \n\r-'()+,./:=?;!*#@$_%", c) != NULL));
+}
+
+__inline__ static bool_t xml_digit(char_t c) {
+  return isdigit(c);
+}
+
+__inline__ static bool_t xml_xdigit(char_t c) {
+  return isxdigit(c);
+}
 
 const char_t *skip_xml_whitespace(const char_t *begin, const char_t *end);
+const char_t *rskip_xml_whitespace(const char_t *begin, const char_t *end);
+
 bool_t is_xml_space(const char_t *begin, const char_t *end);
 const char_t *find_xml_whitespace(const char_t *begin, const char_t *end);
-const char_t *rfind_xml_whitespace(const char_t *begin, const char_t *end);
+
+const char_t *skip_xml_integer(const char_t *begin, const char_t *end, long *val);
+
+
+
+#define xml_isdigit(x) (isdigit(x))
 
 #endif

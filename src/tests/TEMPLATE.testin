@@ -1,0 +1,22 @@
+# Hi there, this is an example template. The compile_test.sh
+# script takes this template, and puts boilerplate script around
+# it to produce the actual test shell script which is executed
+# when you "make check".
+#
+# The sections are mandatory and cannot be rearranged. 
+# If input or output contains tabs they must be escaped
+# The test command(s) should be verbatim on one line.
+# The output will be diff'd with the command output.
+
+_PURPOSE_
+Some text explaining the test will be printed in case it fails
+_INPUT_ 
+Some lines representing an input file on stdin (verbatim).
+Second line of input. This is a here-document, so go crazy :)
+_COMMAND_
+cat
+_EXITCODE_
+0
+_OUTPUT_
+Some lines representing the required output (verbatim).
+_END_

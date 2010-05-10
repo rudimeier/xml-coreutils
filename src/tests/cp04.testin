@@ -1,0 +1,44 @@
+_PURPOSE_
+xml-cp replace a subtree in an existing document.
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+</a>
+_COMMAND_
+true; xml-echo -ne "[x]abc[y]def" | xml-cp :/x/ --replace "$TMP_PATH/input" :/a/b/c
+_EXITCODE_
+0
+_OUTPUT_
+<a>
+	<b bb="A B">
+		abc<y>def</y>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+</a>
+_END_

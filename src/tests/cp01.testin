@@ -1,0 +1,41 @@
+_PURPOSE_
+xml-cp a subtree into stdout.
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+</a>
+_COMMAND_
+xml-cp :/a/b/c/ stdout :/root/
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<root>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</root>
+_END_

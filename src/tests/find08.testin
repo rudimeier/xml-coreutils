@@ -1,0 +1,25 @@
+_PURPOSE_
+xml-find EXECNODE test with {@}, assumes "which echo" works.
+_INPUT_
+<html><head>
+<title></title></head>
+<!-- comment -->
+<frameset rows="ROWS" frameborder="FRAMEBORDER" framespacing="FRAMESPACING" border="BORDER">
+<frame src="SRC" name="NAME" frameborder="FRAMEBORDER" framespacing="FRAMESPACING" marginheight="MARGINHEIGHT" marginwidth="MARGINWIDTH"></frame>
+</frameset>
+<noframes>
+<h2>MESSAGE</h2>
+</noframes></html>
+_COMMAND_
+xml-find -execnode "`which echo`" '[' '{@}' ']'  ';'
+_EXITCODE_
+0
+_OUTPUT_
+[ ]
+[ ]
+[ ]
+[ rows ROWS frameborder FRAMEBORDER framespacing FRAMESPACING border BORDER ]
+[ src SRC name NAME frameborder FRAMEBORDER framespacing FRAMESPACING marginheight MARGINHEIGHT marginwidth MARGINWIDTH ]
+[ ]
+[ ]
+_END_

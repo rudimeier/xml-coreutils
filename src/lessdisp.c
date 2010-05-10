@@ -22,16 +22,15 @@
 #include "lessui.h"
 #include "lessdisp.h"
 #include "lessrend.h"
-#include "error.h"
-
-#include <signal.h>
-#ifndef SIGWINCH
-#define SIGWINCH 28
-#endif
+#include "myerror.h"
+#include "mem.h"
+#include "mysignal.h"
 
 #include <slang.h>
 #include <string.h>
 #include <math.h>
+
+extern volatile flag_t cmd;
 
 typedef struct {
   char *fg;
@@ -39,7 +38,9 @@ typedef struct {
   SLtt_Char_Type att;
 } colourtype_t;
 
-colourtype_t auto_colour[(1<<DISPLAY_AUTO_BITS)] = {
+/* tags are randomly coloured based on their hashed name */
+colourtype_t auto_colour[DISPLAY_COLOUR_SCHEMES][(1<<DISPLAY_AUTO_BITS)] = {
+{
   {"gray", "default", SLTT_BOLD_MASK},
   {"red", "default", SLTT_BOLD_MASK},
   {"green", "default", SLTT_BOLD_MASK},
@@ -48,9 +49,22 @@ colourtype_t auto_colour[(1<<DISPLAY_AUTO_BITS)] = {
   {"cyan", "default", SLTT_BOLD_MASK},
   {"magenta", "default", SLTT_BOLD_MASK},
   {"gray", "default", SLTT_BOLD_MASK},
+},
+{
+  {"blue", "default", SLTT_BOLD_MASK},
+  {"gray", "default", SLTT_BOLD_MASK},
+  {"magenta", "default", SLTT_BOLD_MASK},
+  {"green", "default", SLTT_BOLD_MASK},
+  {"brown", "default", SLTT_BOLD_MASK},
+  {"gray", "default", SLTT_BOLD_MASK},
+  {"red", "default", SLTT_BOLD_MASK},
+  {"cyan", "default", SLTT_BOLD_MASK},
+}
 };
 
-colourtype_t ui_colour[c_last] = {
+/* various ui colour schemes */
+colourtype_t ui_colour[DISPLAY_COLOUR_SCHEMES][c_last] = {
+{
   {"lightgray", "default", 0}, /* c_default */
   {"green", "default", 0}, /* c_tag */
   {"lightgray", "default", SLTT_ULINE_MASK}, /* c_att_name */
@@ -58,28 +72,51 @@ colourtype_t ui_colour[c_last] = {
   {"lightgray", "default", 0}, /* c_chardata */
   {"magenta", "default", 0}, /* c_comment */
   {"blue", "default", 0}, /* c_pi */
+  {"cyan", "default", 0}, /* c_decl */
   {"cyan", "default", 0}, /* c_cdata */
   {"black", "white", 0}, /* c_status */
   {"lightgray", "default", 0}, /* c_indent */
   {"lightgray", "default", 0}, /* c_margin */
   {"lightgray", "default", 0}, /* c_other */
+},
+{
+  {"lightgray", "default", 0}, /* c_default */
+  {"blue", "default", 0}, /* c_tag */
+  {"lightgray", "default", SLTT_ULINE_MASK}, /* c_att_name */
+  {"white", "default", 0}, /* c_att_value */
+  {"lightgray", "default", 0}, /* c_chardata */
+  {"green", "default", 0}, /* c_comment */
+  {"blue", "default", 0}, /* c_pi */
+  {"magenta", "default", 0}, /* c_decl */
+  {"cyan", "default", 0}, /* c_cdata */
+  {"black", "white", 0}, /* c_status */
+  {"lightgray", "default", 0}, /* c_indent */
+  {"lightgray", "default", 0}, /* c_margin */
+  {"lightgray", "default", 0}, /* c_other */
+}
 };
 
 const char_t *ui_help[] = {
   "                   SUMMARY OF XML-LESS COMMANDS",
   "",
-  " H                      Display this help.",
+  " H C-h                  Display this help.",
   " q                      Exit.",
   "-----------------------------------------------------------------",
   "",
   "                          MOVING",
   "",
   " j C-n DOWN      Forward one element.",
-  " k C-p UP        Parent element.",
-  " l RIGHT         Cycle pivot forward.",
-  " h LEFT          Cycle pivot backward.",
-  " ENTER           Toggle attributes.",
-  " SPACE           Toggle wordwrap.",
+  " k C-p UP        Backward one element.",
+  " l RIGHT         Pan right.",
+  " h LEFT          Pan left.",
+  " SPACE           Forward many elements.",
+  "",
+  "                          RENDERING",
+  "",
+  " TAB             Cycle indenting pivot.",
+  " a               Toggle attributes.",
+  " w               Toggle wordwrap.",
+  " c               Cycle color scheme.",
 };
 size_t ui_help_count = sizeof(ui_help)/sizeof(const char_t *);
 
@@ -98,16 +135,34 @@ static void sigwinch_handler(int sig) {
 
 bool_t setup_colours_display(display_t *disp) {
   colour_t c;
-  int i;
-  for(c = c_default; c < c_last; c++) {
-    SLtt_set_color(c, NULL, ui_colour[c].fg, ui_colour[c].bg);
-    SLtt_add_color_attribute(c, ui_colour[c].att);
+  int i, s;
+  if( disp ) {
+    s = disp->colour_scheme;
+    s = (s >= DISPLAY_COLOUR_SCHEMES) ? s - DISPLAY_COLOUR_SCHEMES : s;
+    for(c = c_default; c < c_last; c++) {
+      SLtt_set_color(c, NULL, ui_colour[s][c].fg, ui_colour[s][c].bg);
+      SLtt_add_color_attribute(c, ui_colour[s][c].att);
+    }
+    for(i = 0; i < (1<<DISPLAY_AUTO_BITS); i++) {
+      SLtt_set_color(c_last + i, NULL, auto_colour[s][i].fg, 
+		     auto_colour[s][i].bg);
+      SLtt_add_color_attribute(c_last + i, auto_colour[s][i].att);
+    }
+    return TRUE;
   }
-  for(i = 0; i < (1<<DISPLAY_AUTO_BITS); i++) {
-    SLtt_set_color(c_last + i, NULL, auto_colour[i].fg, auto_colour[i].bg);
-    SLtt_add_color_attribute(c_last + i, auto_colour[i].att);
+  return FALSE;
+}
+
+bool_t next_colour_scheme_display(display_t *disp) {
+  if( disp ) {
+    /* cycle through 2 * DISPLAY_COLOUR_SCHEMES
+       the first half have uniform tag colours, the second
+       half have random tag colours */
+    disp->colour_scheme = 
+      (disp->colour_scheme + 1) % (2 * DISPLAY_COLOUR_SCHEMES);
+    return setup_colours_display(disp);
   }
-  return TRUE;
+  return FALSE;
 }
 
 bool_t set_display(display_t *disp, long mask) {
@@ -137,13 +192,20 @@ bool_t toggle_display(display_t *disp, long mask) {
 bool_t pivot_display(display_t *disp, int delta) {
   if( disp ) {
     disp->pivot += delta;
-    /* at present the effect of pivot = 0 and pivot > max_visible_depth is 
-       visually the same, so we wrap around just before max_visible_depth  */
-    disp->pivot = (disp->pivot >= disp->max_visible_depth) ? 0 : disp->pivot;
-    disp->pivot = (disp->pivot < 0) ? disp->max_visible_depth - 1 : disp->pivot;
+    disp->pivot = (disp->pivot > disp->max_visible_depth) ? 0 : disp->pivot;
+    disp->pivot = (disp->pivot < 0) ? disp->max_visible_depth : disp->pivot;
   } 
   return FALSE;
 }
+
+bool_t shift_display(display_t *disp, int shift) {
+  if( disp ) {
+    disp->first_col += shift;
+    disp->first_col = (disp->first_col < 0) ? 0 : disp->first_col;
+  } 
+  return FALSE;
+}
+
 
 bool_t open_display(display_t *disp) {
   if( disp ) {
@@ -180,15 +242,33 @@ bool_t prompt_display(display_t *disp) {
 
 
 lessui_command_t getcommand_display(display_t *disp) {
-  int c, c1;
+  int c, c1, c2;
   /* global var set this to 1 if you want to interrupt getkey */
   SLKeyBoard_Quit = 0;
 
+  while( !SLang_input_pending(2) ) {
+    process_pending_signal();
+    if( checkflag(cmd,CMD_QUIT) ) {
+      return quit;
+    } else if( true_and_clearflag((flag_t *)&cmd,CMD_ALRM) ) {
+      return refresh;
+    } else if( true_and_clearflag((flag_t *)&cmd,CMD_CHLD) ) {
+      return refresh;
+    }
+  }
+  /* this is pretty ugly :( */
   c = SLang_getkey();
   if( c == '' ) {
     c1 = SLang_getkey();
     switch(c1) {
-
+    case '[': /* shift-TAB = "ESC[Z" */
+      c2 = SLang_getkey();
+      if( c2 == 'Z' ) {
+	c = c2;
+	break;
+      }
+      SLang_ungetkey(c2);
+      /* fall through */
     default:
       /* assume it's a cursor key */
       SLang_ungetkey(c1);
@@ -201,10 +281,24 @@ lessui_command_t getcommand_display(display_t *disp) {
     return quit;
   case 'H':
     return help;
-  case '\r':
-    return select1;
+  case SL_KEY_HOME:
+    return home;
+  case SL_KEY_END:
+    return end;
+  case SL_KEY_BACKSPACE:
+  case SL_KEY_PPAGE:
+    return pgup;
   case ' ':
-    return select2;
+  case '\r':
+  case SL_KEY_ENTER:
+  case SL_KEY_NPAGE:
+    return pgdown;
+  case 'a':
+    return attributes;
+  case 'c':
+    return colours;
+  case 'w':
+    return wordwrap;
   case 'k':
   case 0x10:
   case SL_KEY_UP:
@@ -213,6 +307,10 @@ lessui_command_t getcommand_display(display_t *disp) {
   case 0x0e:
   case SL_KEY_DOWN:
     return forward;
+  case '\t':
+    return indent;
+  case 'Z':
+    return backindent;
   case 'h':
   case SL_KEY_LEFT:
     return left;
@@ -221,6 +319,8 @@ lessui_command_t getcommand_display(display_t *disp) {
     return right;
   case 'N':
     return next_sibling;
+  case 'r':
+    return refresh;
   default:
     return nothing;
   }
@@ -236,7 +336,7 @@ void start_tag_display(fbparserinfo_t *pinfo, const char_t *name, const char_t *
     }
     set_colour_renderer(r, c_tag);
     puts_renderer(r, "<");
-/*     set_autocolour_renderer(r, name); */
+    set_autocolour_renderer(r, name);
     puts_renderer(r, name);
     if( checkflag(r->flags, RENDERER_ATTRIBUTES) ) {
       if( reset_attlist(&r->alist) &&
@@ -256,12 +356,13 @@ void end_tag_display(fbparserinfo_t *pinfo, const char_t *name, void *user) {
   if( pinfo && r ) { 
     if( !r->pivot || (pinfo->depth < r->pivot) ) {
       set_offsets_renderer(r, pinfo->offset, pinfo->nodecount);
+      /* fbp convention depth(end-tag) > depth(start-tag) */
       set_indent_renderer(r, pinfo->depth - 1);
       start_line_renderer(r);
     }
     set_colour_renderer(r, c_tag);
     puts_renderer(r, "</");
-/*     set_autocolour_renderer(r, name); */
+    set_autocolour_renderer(r, name);
     puts_renderer(r, name);
     set_colour_renderer(r, c_tag);
     puts_renderer(r, ">");
@@ -283,7 +384,8 @@ void chardata_display(fbparserinfo_t *pinfo, const char_t *buf, size_t buflen, v
       }
       set_colour_renderer(r, c_chardata);
       write_squeeze_renderer(r, buf, buf + buflen);
-      if( pinfo->noderep > midfrag ) {
+      if( checkflag(r->flags, RENDERER_WORDWRAP) &&
+	  (pinfo->noderep > midfrag) ) {
 	puts_renderer(r, sep);
       }
       set_colour_renderer(r, c_default);
@@ -291,15 +393,40 @@ void chardata_display(fbparserinfo_t *pinfo, const char_t *buf, size_t buflen, v
   }
 }
 
+void dfault_display(fbparserinfo_t *pinfo, const char_t *buf, size_t buflen, void *user) {
+  /* this isn't giving good results and has to be redone */
+  renderer_t *r = (renderer_t *)user;
+  if( pinfo && r ) {
+    if( pinfo->nodetype > n_space ) {
+      set_offsets_renderer(r, pinfo->offset, pinfo->nodecount);
+      set_indent_renderer(r, pinfo->depth);
+      start_line_renderer(r);
+      set_colour_renderer(r, c_other);
+      write_renderer(r, buf, buf + buflen);
+      set_colour_renderer(r, c_other);
+    }
+  }
+}
+
 void comment_display(fbparserinfo_t *pinfo, const char_t *data, void *user) {
   renderer_t *r = (renderer_t *)user;
+  const char_t *p, *q;
   if( pinfo && r ) { 
     set_offsets_renderer(r, pinfo->offset, pinfo->nodecount);
     set_indent_renderer(r, pinfo->depth);
     start_line_renderer(r);
     set_colour_renderer(r, c_comment);
     puts_renderer(r, "<!-- ");
-    puts_renderer(r, data);
+    p = data;
+    while( p && *p ) {
+      q = skip_unescaped_delimiters(p, NULL, "\r\n", '\0');
+      write_renderer(r, p, q);
+      while( (*q == '\r') || (*q == '\n') ) { q++; }
+      p = q;
+      if( *q ) {
+	start_line_renderer(r);
+      }
+    }
     puts_renderer(r, " -->");
     set_colour_renderer(r, c_default);
   }
@@ -313,6 +440,10 @@ void pidata_display(fbparserinfo_t *pinfo, const char_t *target, const char_t *d
     start_line_renderer(r);
     puts_renderer(r, "<?");
     puts_renderer(r, target);
+    if( checkflag(r->flags, RENDERER_ATTRIBUTES) ) {
+      puts_renderer(r, " ");
+      puts_renderer(r, data);
+    }
     puts_renderer(r, "?>");
   }
 }
@@ -320,37 +451,110 @@ void pidata_display(fbparserinfo_t *pinfo, const char_t *target, const char_t *d
 void start_cdata_display(fbparserinfo_t *pinfo, void *user) {
   renderer_t *r = (renderer_t *)user;
   if( pinfo && r ) { 
-    set_offsets_renderer(r, pinfo->offset, pinfo->nodecount);
-    set_indent_renderer(r, pinfo->depth);
-    start_line_renderer(r);
+    /* set_offsets_renderer(r, pinfo->offset, pinfo->nodecount); */
+    /* set_indent_renderer(r, pinfo->depth); */
+    /* start_line_renderer(r); */
     set_colour_renderer(r, c_cdata);
-    puts_renderer(r, "<![CDATA[ ");
+    puts_renderer(r, "<![CDATA[");
   }
 }
 
 void end_cdata_display(fbparserinfo_t *pinfo, void *user) {
   renderer_t *r = (renderer_t *)user;
   if( pinfo && r ) { 
-    set_offsets_renderer(r, pinfo->offset, pinfo->nodecount);
-    set_indent_renderer(r, pinfo->depth);
-    start_line_renderer(r);
+    /* set_offsets_renderer(r, pinfo->offset, pinfo->nodecount); */
+    /* set_indent_renderer(r, pinfo->depth); */
+    /* start_line_renderer(r); */
     set_colour_renderer(r, c_cdata);
     puts_renderer(r, "]]>");
     set_colour_renderer(r, c_default);
   }
 }
 
-void dfault_display(fbparserinfo_t *pinfo, const char_t *buf, size_t buflen, void *user) {
+void start_doctypedecl_display(fbparserinfo_t *pinfo, const char_t *name, const char_t *sysid, const char_t *pubid, bool_t intsub, void *user) {
   renderer_t *r = (renderer_t *)user;
   if( pinfo && r ) { 
-    if( pinfo->nodetype > n_space ) {
+    if( !r->pivot || (pinfo->depth < r->pivot) ) {
       set_offsets_renderer(r, pinfo->offset, pinfo->nodecount);
       set_indent_renderer(r, pinfo->depth);
       start_line_renderer(r);
-      set_colour_renderer(r, c_other);
-      write_renderer(r, buf, buf + buflen);
-      set_colour_renderer(r, c_other);
     }
+    set_colour_renderer(r, c_decl);
+    puts_renderer(r, "<!DOCTYPE");
+    if( name ) {
+      puts_renderer(r, " ");
+      puts_renderer(r, name);
+    }
+    if( checkflag(r->flags, RENDERER_ATTRIBUTES) ) {
+      set_colour_renderer(r, c_att_value);
+      if( sysid ) {
+	puts_renderer(r, " ");
+	puts_renderer(r, sysid);
+      }
+      if( pubid ) {
+	puts_renderer(r, " ");
+	puts_renderer(r, pubid);
+      }
+    }
+    set_colour_renderer(r, c_decl);
+    puts_renderer(r, " [");
+    set_colour_renderer(r, c_default);
+  }
+}
+
+void end_doctypedecl_display(fbparserinfo_t *pinfo, void *user) {
+  renderer_t *r = (renderer_t *)user;
+  if( pinfo && r ) { 
+    if( !r->pivot || (pinfo->depth + 1 < r->pivot) ) {
+      set_offsets_renderer(r, pinfo->offset, pinfo->nodecount);
+      set_indent_renderer(r, pinfo->depth + 1);
+      start_line_renderer(r);
+    }
+    set_colour_renderer(r, c_decl);
+    puts_renderer(r, "]>");
+    set_colour_renderer(r, c_default);
+  }
+}
+
+void entitydecl_display(fbparserinfo_t *pinfo, const char_t *name, bool_t isparam, const char_t *value, int len, const char_t *base, const char_t *sysid, const char_t *pubid, const char_t *notation, void *user) {
+  renderer_t *r = (renderer_t *)user;
+  if( pinfo && r ) { 
+    if( !r->pivot || (pinfo->depth + 1 < r->pivot) ) {
+      set_offsets_renderer(r, pinfo->offset, pinfo->nodecount);
+      set_indent_renderer(r, pinfo->depth + 1);
+      start_line_renderer(r);
+    }
+    set_colour_renderer(r, c_decl);
+    puts_renderer(r, "<!ENTITY");
+    puts_renderer(r, " ");
+    puts_renderer(r, name);
+    if( checkflag(r->flags, RENDERER_ATTRIBUTES) ) {
+      set_colour_renderer(r, c_att_value);
+      if( value ) {
+      	puts_renderer(r, " \"");
+      	write_renderer(r, value, value + len);
+      	puts_renderer(r, "\"");
+      }
+      if( base ) {
+      	puts_renderer(r, " ");
+      	puts_renderer(r, base);
+      }
+      if( sysid ) {
+      	puts_renderer(r, " ");
+      	puts_renderer(r, sysid);
+      }
+      if( pubid ) {
+      	puts_renderer(r, " ");
+      	puts_renderer(r, pubid);
+      }
+      if( notation ) {
+      	puts_renderer(r, " ");
+      	puts_renderer(r, notation);
+      }
+    }
+    set_colour_renderer(r, c_decl);
+    puts_renderer(r, ">");
+    set_colour_renderer(r, c_default);
   }
 }
 
@@ -394,6 +598,9 @@ bool_t fill_callbacks_display(display_t *disp, renderer_t *r, fbcallback_t *call
     callbacks->start_cdata = start_cdata_display;
     callbacks->end_cdata = end_cdata_display;
     callbacks->comment = comment_display;
+    callbacks->start_doctypedecl = start_doctypedecl_display;
+    callbacks->end_doctypedecl = end_doctypedecl_display;
+    callbacks->entitydecl = entitydecl_display;
     callbacks->dfault = dfault_display;
     callbacks->user = (void *)r;
     return TRUE;
@@ -427,6 +634,10 @@ bool_t setup_renderer_display(display_t *disp, renderer_t *r, off_t filesize) {
 /*       set_margin_renderer(r, 8); */
 /*     } */
 
+    r->last_col = disp->first_col;
+    SLsmg_set_screen_start(NULL, &r->last_col);
+    r->last_col = disp->first_col + disp->num_cols + 5;
+
     return TRUE;
   }
   return FALSE;
@@ -438,34 +649,36 @@ bool_t redraw_cursor_display(display_t *disp, cursor_t *cursor, fbparser_t *fbp)
   renderer_t r;
   if( disp && cursor && fbp ) {
 
-    if( open_display(disp) &&
-	create_renderer(&r, disp) &&
-	setup_renderer_display(disp, &r, fbp->reader.size) ) {
+    if( open_display(disp) ) {
+      if( create_renderer(&r, disp) &&
+	  setup_renderer_display(disp, &r, fbp->reader.size) ) {
 
-      fill_callbacks_display(disp, &r, &callbacks);
+	fill_callbacks_display(disp, &r, &callbacks);
 
-      if( parse_first_fileblockparser(fbp, cursor, &callbacks, &pos) ) {
+	if( parse_first_fileblockparser(fbp, cursor, &callbacks, &pos) ) {
 
-	/* this still needs logic to skip over nodes which don't get displayed. */
-	while( !checkflag(r.flags,RENDERER_DONE) &&
-	       parse_next_fileblockparser(fbp, &pos) );
-/* 	debug("REDRAW done\n"); */
+	  /* this still needs logic to skip over nodes which don't get displayed. */
+	  while( !checkflag(r.flags,RENDERER_DONE) &&
+		 parse_next_fileblockparser(fbp, &pos) );
+	  /* 	debug("REDRAW done\n"); */
+	}
+
+	disp->max_visible_depth = fbp->info.maxdepth;
+
+	free_renderer(&r);
       }
-
-      disp->max_visible_depth = fbp->info.maxdepth;
-
-      free_renderer(&r);
 
       prompt_display(disp);
+
       close_display(disp);
-
-      if( pos.status == ps_error ) {
-	errormsg_display(disp, E_WARNING, "parsing error at file offset %d: %s",
-			 pos.offset, error_message_parser(&fbp->parser));
-	return FALSE;
-      }
-
     }
+
+    if( pos.status == ps_error ) {
+      errormsg_display(disp, E_WARNING, "parsing error at file offset %x: %s",
+		       pos.offset, error_message_parser(&fbp->parser));
+      return FALSE;
+    }
+
     return TRUE;
   }
   return FALSE;
@@ -536,27 +749,28 @@ bool_t do_help_display(display_t *disp) {
   size_t i;
   renderer_t r;
   if( disp ) {
+    disp->first_col = 0;
+    if( open_display(disp) ) {
+      if( create_renderer(&r, disp) &&
+	  setup_renderer_display(disp, &r, 0) ) {
 
-    if( open_display(disp) &&
-	create_renderer(&r, disp) &&
-	setup_renderer_display(disp, &r, 0) ) {
+	set_indent_renderer(&r, 0);
 
-      set_indent_renderer(&r, 0);
+	for(i = 0; i < ui_help_count; i++) {
+	  start_line_renderer(&r);
+	  puts_renderer(&r, ui_help[i]);
+	}
+	erase_eos_renderer(&r);
+	prompt_display(disp);
 
-      for(i = 0; i < ui_help_count; i++) {
-	start_line_renderer(&r);
-	puts_renderer(&r, ui_help[i]);
+	free_renderer(&r);
       }
-      erase_eos_renderer(&r);
-      prompt_display(disp);
-
-      free_renderer(&r);
       close_display(disp);
-
-      while(quit != getcommand_display(disp));
-
-      return TRUE;
     }
+
+    while(quit != getcommand_display(disp));
+
+    return TRUE;
   }
   return FALSE;
 }

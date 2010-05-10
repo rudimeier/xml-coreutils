@@ -1,0 +1,84 @@
+\" t
+.TH XML-CUT 1 "xml-coreutils" "Version @VERSION@" ""
+.SH NAME
+xml-cut \- print selected parts of an XML file as an XML file.
+.SH SYNOPSIS
+.HP
+.B xml-cut 
+.IR  OPTION ...
+.RI [
+.RI [ FILE ]
+.RI [: XPATH ]...
+.RI ]
+.SH DESCRIPTION
+.P
+.B xml-cut
+views each leaf node as a virtual line of text beginning with a sequence
+of tags representing its path from the root to the leaf, and followed
+by said leaf node's string value. The various options split this line
+into pieces (characters, fields or tags) and xml-cut keeps only a
+selection of these pieces, which are reassembled as a leaf node and
+included in the output. More precisely:
+.P
+The -c option numbers the characters of a text node's string value, and
+selects a range of these characters for output. The output XML file
+contains the same tags and the same tree structure as before, but
+the text nodes only contain the selections. 
+.P
+The -f option splits a text node into fields separated by
+whitespace and outputs only the selected fields but all the whitespace. 
+The output XML fie contains the same tags and the same tree structure 
+and the same whitespace as before, but otherwise the text nodes only contain
+the selections.
+.P
+For each path leading to a text node, the -t option numbers the tags
+contained in the path, treating the text node itself as the "last tag".
+The output XML file contains only a selection of tags and text nodes.
+.P
+In each case, a range of (characters, fields or tags) is one of
+.TP
+N
+N'th character, field or tag, counted from 1
+.TP
+N\-
+from N'th character, field or tag, to end of node
+.TP
+N\-M
+from N'th to M'th (included) character, field or tag
+.TP
+\fB\-M\fR
+from first to M'th (included) character, field or tag
+.SH OPTIONS
+.IP -c RANGE
+select a range of characters in each text node.
+.IP -f RANGE
+select a range of fields separated by whitespace, in each text node.
+.IP -t RANGE
+select a range of tags and text nodes (treated as tags).
+.SH EXIT STATUS
+xml-cut returns 0 on success, or 1 otherwise.
+.SH EXAMPLE
+.P
+Remove the second level tags from a document: 
+.EX
+xml-cut -t 1,3- book.xml
+.EE
+.SH AUTHORS
+.P
+.MT laird@lbreyer.com
+Laird A. Breyer
+.ME
+is the original author of this software.
+The source code (GPLv3 or later) for the latest version is available at the
+following locations: 
+.PP
+.na 
+.UR http://www.lbreyer.com/gpl.html
+.UE
+.br
+.UR http://xml-coreutils.sourceforge.net
+.UE
+.ad
+.SH SEE ALSO
+.PP
+.BR xml-coreutils (7)

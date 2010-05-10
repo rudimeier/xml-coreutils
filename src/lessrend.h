@@ -26,18 +26,19 @@
 #endif
 
 #include "lessdisp.h"
-#include "attributes.h"
+#include "attlist.h"
 
-#define RENDERER_DONE              0x0001
-#define RENDERER_ATTRIBUTES        0x0002
-#define RENDERER_LINEWRAP          0x0004
-#define RENDERER_WORDWRAP          0x0008
-#define RENDERER_SHOW_OFFSETS      0x0010
-#define RENDERER_SHOW_NODECOUNTS   0x0020
-#define RENDERER_NEW_OFFSETS       0x0040
+#define RENDERER_DONE              0x01
+#define RENDERER_ATTRIBUTES        0x02
+#define RENDERER_LINEWRAP          0x04
+#define RENDERER_WORDWRAP          0x08
+#define RENDERER_SHOW_OFFSETS      0x10
+#define RENDERER_SHOW_NODECOUNTS   0x20
+#define RENDERER_NEW_OFFSETS       0x40
+#define RENDERER_AUTO_TAG_COLOURS  0x80
 
 typedef struct {
-  unsigned long flags;
+  flag_t flags;
   int row;
   int col;
   int colour;
@@ -50,6 +51,8 @@ typedef struct {
   int num_rows;
   int num_cols;
   int margin;
+  int last_col;
+  int tabsize;
 } renderer_t;
 
 bool_t create_renderer(renderer_t *r, display_t *disp);

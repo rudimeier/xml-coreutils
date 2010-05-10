@@ -1,0 +1,31 @@
+_PURPOSE_
+xml-cp replace the root tag.
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<k>J K P</k>
+	</b>
+</a>
+_COMMAND_
+xml-cp :/a/b/k stdout :/
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<k>J K P</k>
+_END_

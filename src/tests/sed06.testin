@@ -1,0 +1,31 @@
+_PURPOSE_
+xml-sed append after current echoleaf.
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+</a>
+_COMMAND_
+xml-sed '4ahello;6{ahello; s/$/[..]/}' 
+_EXITCODE_
+0
+_OUTPUT_
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D Ehello</d>
+			<e>F G</e>hello
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+</a>
+_END_

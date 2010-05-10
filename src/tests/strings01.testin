@@ -1,0 +1,26 @@
+_PURPOSE_
+xml-strings shows stringvalues but not attributes.
+_INPUT_ 
+<?xml version="1.0"?>
+<a x="y">
+	one
+	<b a="b">
+		abc
+	</b>
+	<b a="b">
+		def
+	</b>
+	two
+</a>
+_COMMAND_
+xml-strings
+_EXITCODE_
+0
+_OUTPUT_
+
+one
+abc
+
+def
+two
+_END_

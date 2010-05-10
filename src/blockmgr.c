@@ -25,16 +25,15 @@
 
 
 bool_t create_blockmanager(blockmanager_t *bm, size_t blocksize, size_t maxblocks) {
+  bool_t ok = TRUE;
   if( bm ) {
     bm->blocksize = blocksize;
     bm->maxblocks = maxblocks;
-    if( create_mem(&bm->blocks, &bm->numblocks, sizeof(block_t), 8) &&
-	create_mem(&bm->data, &bm->numdata, bm->blocksize, 8) ) {
-
-      bm->root = NULL;
-      bm->count = 0;
-      return TRUE;
-    }
+    ok &= create_mem(&bm->blocks, &bm->numblocks, sizeof(block_t), 8);
+    ok &= create_mem(&bm->data, &bm->numdata, bm->blocksize, 8);
+    bm->root = NULL;
+    bm->count = 0;
+    return ok;
   }
   return FALSE;
 }
@@ -63,10 +62,23 @@ bool_t create_block_blockmanager(blockmanager_t *bm, block_t **result) {
   if( bm && result) {
     /* first try to grow */
     if( (bm->count >= bm->numblocks) && (bm->numblocks < bm->maxblocks) ) {
-      grow_mem(&bm->data, &bm->numdata, bm->blocksize, 8);
-      grow_mem(&bm->blocks, &bm->numblocks, sizeof(block_t), 8);
+      if( grow_mem(&bm->data, &bm->numdata, bm->blocksize, 8) ) {
+	if( !grow_mem(&bm->blocks, &bm->numblocks, sizeof(block_t), 8) ) {
+	  /* serious trouble */
+	  free_blockmanager(bm);
+	  create_blockmanager(bm, bm->blocksize, bm->maxblocks);
+	  return FALSE;
+	}
+	/* we've grown, now pointers are wrong. Recreate tree. */
+	bm->root = NULL;
+	for(i = 0 ; i < bm->count; i++) {
+	  bm->blocks[i].left = NULL;
+	  bm->blocks[i].right = NULL;
+	  insert_block_blockmanager(bm, &bm->blocks[i]);
+	}
+      }
     }
-    /* now replace least useful block.
+    /* if we couldn't grow, we replace least useful block.
        least useful = smallest touch count. 
        never replace blocks[0] which contains blockid=0. */
     if( bm->count >= bm->numblocks ) {
@@ -86,7 +98,7 @@ bool_t create_block_blockmanager(blockmanager_t *bm, block_t **result) {
       }
       return FALSE;
     } 
-    /* create a new block */
+    /* if we're here, there's room. create a new block at the end. */
     p = &bm->blocks[bm->count];
     memset(p, 0, sizeof(block_t));
     bm->count++;

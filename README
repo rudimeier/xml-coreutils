@@ -2,10 +2,10 @@ XML-COREUTILS README
 
 PURPOSE
 
-xml-coreutils is a set of command line utilities which mirror (where
-applicable) the GNU coreutils in functionality, while operating on XML
-documents. See the documents in the doc/ directory for a comprehensive
-explanation.
+xml-coreutils is a set of command line utilities which mimic (where
+applicable) the GNU coreutils in functionality and interface, while 
+operating on XML documents. See the documents in the doc/ directory 
+for a comprehensive explanation.
 
 LICENSE
 

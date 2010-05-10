@@ -78,11 +78,28 @@ const char_t *find_xml_whitespace(const char_t *begin, const char_t *end) {
   return begin;
 }
 
-const char_t *rfind_xml_whitespace(const char_t *begin, const char_t *end) {
+const char_t *rskip_xml_whitespace(const char_t *begin, const char_t *end) {
   if( begin < end ) {
     end--;
     while( (begin <= end) && !xml_whitespace(*end) ) { end--; }
     return (end < begin) ? NULL : end; 
+  }
+  return NULL;
+}
+
+/* skip and convert an integer. This is a bit like atoi or strtol but
+ * works even if the string is not NUL terminated.
+ * returns NULL on error, or charpos after last digit otherwise.
+ */
+const char_t *skip_xml_integer(const char_t *begin, const char_t *end, long *val) {
+  long v;
+  const char_t *r;
+  if( begin && (begin < end) ) {
+    for(v = 0, r = begin; r && (r < end) && xml_isdigit(*r); r++) {
+      v = 10 * v + (toascii(*r) - 0x30); /* ascii 0x30 = '0' */
+    }
+    if( val ) { *val = v; }
+    return (r > begin) ? r : NULL;
   }
   return NULL;
 }

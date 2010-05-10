@@ -1,0 +1,50 @@
+_PURPOSE_
+xml-grep invert an attribute match. Matched tag still visible due to children.
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+</a>
+_COMMAND_
+xml-grep -v -e 'A' -e 'F'
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<root>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+</root>
+_END_

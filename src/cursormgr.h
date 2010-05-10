@@ -41,11 +41,11 @@ bool_t free_cursormanager(cursormanager_t *cmg);
 
 bool_t next_sibling_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp);
 bool_t prev_sibling_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp);
-bool_t next_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp);
-bool_t prev_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp);
+bool_t next_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp, int count);
+bool_t prev_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp, int count);
 bool_t parent_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp);
-bool_t next_pivot_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp, int pivot);
-bool_t prev_pivot_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp, int pivot);
+bool_t next_pivot_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp, int pivot, int count);
+bool_t prev_pivot_cursormanager(cursormanager_t *cmg, cursor_t *cursor, fbparser_t *fbp, int pivot, int count);
 
 #endif
  

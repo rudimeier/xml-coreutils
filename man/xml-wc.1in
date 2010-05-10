@@ -1,0 +1,55 @@
+\" t
+.TH XML-WC 1 "xml-coreutils" "Version @VERSION@" ""
+.SH NAME
+xml-wc \- print height, depth and number of tags for each XML file.
+.SH SYNOPSIS
+.HP
+.B xml-wc 
+.RI [ OPTION ]...
+.R [
+.RI [ FILE ]...
+.RI [: XPATH ]...
+.R ]...
+.SH DESCRIPTION
+.PP
+.B xml-wc
+prints simple statistics for one or more XML files on standard output.
+.PP
+The statistics are in order: 
+.IP
+the height (number of child tags of the root tag)
+.IP
+the depth (maximum node length of document)
+.IP
+the number of tags in the document
+.PP
+If more than one input file is specified, statistics for each file are printed
+on separate lines, and then final totals are printed (or maximum for the depth).
+.SH OPTIONS
+None.
+.SH EXIT STATUS
+xml-wc returns 0 on success, or 1 otherwise.
+.SH EXAMPLE
+.P
+.EX
+xml-wc manuscript.xml
+.EE
+.SH AUTHORS
+.P
+.MT laird@lbreyer.com
+Laird A. Breyer
+.ME
+is the original author of this software.
+The source code (GPLv3 or later) for the latest version is available at the
+following locations: 
+.PP
+.na 
+.UR http://www.lbreyer.com/gpl.html
+.UE
+.br
+.UR http://xml-coreutils.sourceforge.net
+.UE
+.ad
+.SH SEE ALSO
+.PP
+.BR xml-coreutils (7)

@@ -21,12 +21,13 @@
 #include "common.h"
 #include "format.h"
 
+extern const char_t escc;
 
 char_t convert_backslash(const char_t *p) {
   if( !p ) {
-    return (char_t)0;
+    return (char_t)'\0';
   }
-  if( *p != '\\' ) {
+  if( *p != escc ) {
     return *p;
   }
   p++;

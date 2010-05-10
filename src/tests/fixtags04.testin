@@ -1,0 +1,13 @@
+_PURPOSE_
+xml-fixtags html flag
+_INPUT_ 
+<a>click here</a>
+_COMMAND_
+xml-fixtags --html
+_EXITCODE_
+0
+_OUTPUT_
+<html><head></head><body><a>click here</a>
+</body>
+</html>
+_END_

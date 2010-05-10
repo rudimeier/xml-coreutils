@@ -21,10 +21,11 @@
 #include "common.h"
 #include "parser.h"
 #include "io.h"
-#include "error.h"
+#include "myerror.h"
 #include "wrap.h"
 #include "stdout.h"
 #include "stdparse.h"
+#include "mysignal.h"
 
 #include <string.h>
 #include <getopt.h>
@@ -37,24 +38,30 @@ extern char *progname;
 extern char *inputfile;
 extern long inputline;
 
-extern int cmd;
+extern volatile flag_t cmd;
 
 #include <stdio.h>
 
 typedef struct {
   stdparserinfo_t std; /* must be first so we can cast correctly */
+  flag_t flags, reserved;
 } parserinfo_strings_t;
 
 #define STRINGS_VERSION    0x01
 #define STRINGS_HELP       0x02
+#define STRINGS_VERBATIM   0x03
 #define STRINGS_USAGE \
-"Usage: xml-strings [OPTION] [[FILE]:XPATH]...\n" \
+"Usage: xml-strings [OPTION]... [[FILE]... [:XPATH]...]...\n" \
 "Display textual strings in FILE(s), or standard input.\n" \
 "\n" \
 "      --help     display this help and exit\n" \
 "      --version  display version information and exit\n"
 
-void set_option(int op, char *optarg) {
+#define STRINGS_FLAG_SPLIT          0x01
+#define STRINGS_FLAG_SQUEEZE        0x02
+#define STRINGS_RESERVED_CHARDATA   0x01
+
+void set_option_strings(int op, char *optarg, parserinfo_strings_t *pinfo) {
   switch(op) {
   case STRINGS_VERSION:
     puts("xml-strings" COPYBLURB);
@@ -64,48 +71,89 @@ void set_option(int op, char *optarg) {
     puts(STRINGS_USAGE);
     exit(EXIT_SUCCESS);
     break;
+  case STRINGS_VERBATIM:
+    clearflag(&pinfo->flags,STRINGS_FLAG_SQUEEZE);
+    break;
+  default:
+    break;
   }
 }
 
 result_t start_tag(void *user, const char_t *name, const char_t **att) {
   parserinfo_strings_t *pinfo = (parserinfo_strings_t *)user;
   if( pinfo ) { 
-    return PARSER_OK;
+    if( true_and_clearflag(&pinfo->reserved,STRINGS_RESERVED_CHARDATA) ) {
+      if( checkflag(pinfo->flags,STRINGS_FLAG_SPLIT) ) {
+	putc_stdout('\n');
+      }
+    }
   }
-  return (PARSER_OK|PARSER_DEFAULT);
+  return PARSER_OK;
 }
 
 result_t end_tag(void *user, const char_t *name) {
   parserinfo_strings_t *pinfo = (parserinfo_strings_t *)user;
   if( pinfo ) { 
-    return PARSER_OK;
+    if( true_and_clearflag(&pinfo->reserved,STRINGS_RESERVED_CHARDATA) ) {
+      if( checkflag(pinfo->flags,STRINGS_FLAG_SPLIT) ) {
+	putc_stdout('\n');
+      }
+    }
   }
-  return (PARSER_OK|PARSER_DEFAULT);
+  return PARSER_OK;
 }
 
 result_t chardata(void *user, const char_t *buf, size_t buflen) {
   parserinfo_strings_t *pinfo = (parserinfo_strings_t *)user;
   if( pinfo ) { 
     if( 0 < pinfo->std.depth ) {
-      write_stdout((byte_t *)buf, buflen);
+      if( checkflag(pinfo->flags,STRINGS_FLAG_SQUEEZE) ) {
+	squeeze_stdout((byte_t *)buf, buflen);
+      } else {
+	write_stdout((byte_t *)buf, buflen);
+      }
+      setflag(&pinfo->reserved,STRINGS_RESERVED_CHARDATA);
     }
   }
   return PARSER_OK;
 }
 
-result_t pidata(void *user, const char_t *target, const char_t *data) {
-  /* just ignore */
-  return PARSER_OK;
-}
-
-result_t dfault(void *user, const char_t *data, size_t buflen) {
+result_t attribute(void *user, const char_t *name, const char_t *value) {
   parserinfo_strings_t *pinfo = (parserinfo_strings_t *)user;
   if( pinfo ) { 
     if( 0 < pinfo->std.depth ) {
-      write_stdout((byte_t *)data, buflen);
+      puts_stdout(value);
+      if( checkflag(pinfo->flags,STRINGS_FLAG_SPLIT) ) {
+	putc_stdout('\n');
+      }
     }
   }
   return PARSER_OK;
+}
+
+bool_t create_parserinfo_strings(parserinfo_strings_t *pinfo) {
+  bool_t ok = TRUE;
+  if( pinfo ) {
+
+    memset(pinfo, 0, sizeof(parserinfo_strings_t));
+    ok &= create_stdparserinfo(&pinfo->std);
+
+    pinfo->std.setup.flags = STDPARSE_MIN1FILE;
+    pinfo->std.setup.cb.start_tag = start_tag;
+    pinfo->std.setup.cb.end_tag = end_tag;
+    pinfo->std.setup.cb.chardata = chardata;
+    pinfo->std.setup.cb.attribute = attribute;
+
+    setflag(&pinfo->flags,(STRINGS_FLAG_SPLIT|STRINGS_FLAG_SQUEEZE));
+
+    return ok;
+  }
+  return FALSE;
+} 
+
+bool_t free_parserinfo_strings(parserinfo_strings_t *pinfo) {
+  free_stdparserinfo(&pinfo->std);
+  return TRUE;
 }
 
 int main(int argc, char **argv) {
@@ -115,33 +163,31 @@ int main(int argc, char **argv) {
   struct option longopts[] = {
     { "version", 0, NULL, STRINGS_VERSION },
     { "help", 0, NULL, STRINGS_HELP },
+    { "no-squeeze", 0, NULL, STRINGS_VERBATIM },
+    { 0 }
   };
 
   progname = "xml-strings";
-  inputfile = "stdin";
+  inputfile = "";
   inputline = 0;
 
-  while( (op = getopt_long(argc, argv, "",
-			   longopts, NULL)) > -1 ) {
-    set_option(op, optarg);
+  if( create_parserinfo_strings(&pinfo) ) {
+    while( (op = getopt_long(argc, argv, "",
+			     longopts, NULL)) > -1 ) {
+      set_option_strings(op, optarg, &pinfo);
+    }
+
+    init_signal_handling();
+    init_file_handling();
+
+    open_stdout();
+    stdparse(MAXFILES, argv + optind, (stdparserinfo_t *)&pinfo);
+    close_stdout();
+
+    exit_file_handling();
+    exit_signal_handling();
+
+    free_parserinfo_strings(&pinfo);
   }
-
-  init_file_handling();
-
-  memset(&pinfo, 0, sizeof(parserinfo_strings_t));
-  pinfo.std.setup.flags = 0;
-  pinfo.std.setup.cb.start_tag = start_tag;
-  pinfo.std.setup.cb.end_tag = end_tag;
-  pinfo.std.setup.cb.chardata = chardata;
-  pinfo.std.setup.cb.pidata = NULL; /* pidata; */
-  pinfo.std.setup.cb.comment = NULL;
-  pinfo.std.setup.cb.dfault = NULL; /* dfault; */
-
-  open_stdout();
-  stdparse(optind, argv, (stdparserinfo_t *)&pinfo);
-  close_stdout();
-
-  exit_file_handling();
-
   return EXIT_SUCCESS;
 }

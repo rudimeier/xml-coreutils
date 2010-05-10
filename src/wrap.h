@@ -25,8 +25,15 @@
 #include "config.h"
 #endif
 
-char_t *get_headwrap();
-char_t *get_footwrap();
-char_t *get_root_tag();
+const char_t *get_open_root();
+const char_t *get_close_root();
+const char_t *get_root_tag();
+
+const char_t *get_headwrap();
+const char_t *get_footwrap();
+
+void set_root_tag(const char_t *root);
+void set_headwrap(const char_t *wrap);
+void set_footwrap(const char_t *wrap);
 
 #endif

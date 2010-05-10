@@ -4,39 +4,238 @@
 xml-coreutils \- shell commands for XML processing
 .SH DESCRIPTION
 .PP
-.B xml-coreutils
-is a collection of shell commands similar to the traditional
-.B coreutils
-shipped on many Unix systems.
+.BR xml-coreutils (7)
+is a collection of shell commands, similar to the traditional
+core utilities ("coreutils") shipped on many Unix systems, but
+intended to operate on XML files rather than text files.
+An important design goal is to keep the "look and feel" of
+the traditional core utilities, and to minimize the learning curve 
+for experienced shell users.
 .PP
 While the current version of
-.B xml-coreutils
-is likely to have evolved somwhat from its initial design, the core ideas
-are described in detail in the following essay:
+.BR xml-coreutils (7)
+is likely to have evolved somewhat from its initial design, the fundamental
+ideas are described in detail in the following essay and tutorial:
 .IP @PKGDATADIR@/doc/unix_xml.html
-.SH SOURCE
-.PP
-The source code for the latest version of xml-coreutils is available at the
+.IP @PKGDATADIR@/doc/xml_coreutils_tutorial.html
+.P
+This manpage lists the available COMMANDS, and describes
+the COMMON UNIFIED COMMAND LINE CONVENTION as well
+as the concept of an ECHO-LEAF.
+.SH COMMANDS
+The following list of commands is available:
+.RS
+.IP \fBxml-cat\fR(1) 15
+concatenate XML files and print XML on the standard output.
+.IP \fBxml-cp\fR(1) 15
+copy nodes from XML files into an XML file.
+.IP \fBxml-cut\fR(1) 15
+print selected parts of an XML file as an XML file.
+.IP \fBxml-echo\fR(1) 15
+generate an XML file on the standard output.
+.IP \fBxml-file\fR(1) 15
+determine type of XML files.
+.IP \fBxml-find\fR(1) 15
+search for nodes in XML files and execute actions.
+.IP \fBxml-fixtags\fR(1) 15
+convert HTML into XML on the standard output.
+.IP \fBxml-fmt\fR(1) 15
+reformat an XML file, writing to the standard output.
+.IP \fBxml-grep\fR(1) 15
+print matching fragments as an XML file on the standard output.
+.IP \fBxml-head\fR(1) 15
+truncate the parts of an XML document.
+.IP \fBxml-less\fR(1) 15
+interactively display an XML file on a terminal.
+.IP \fBxml-ls\fR(1) 15
+list the contents of an XML file.
+.IP \fBxml-mv\fR(1) 15
+move nodes from XML files to an XML file or the standard output.
+.IP \fBxml-printf\fR(1) 15
+format and print data in an XML file to the standard output.
+.IP \fBxml-rm\fR(1) 15
+remove nodes from XML files.
+.IP \fBxml-sed\fR(1) 15
+stream editor for filtering and transforming an XML file.
+.IP \fBxml-strings\fR(1) 15
+print the strings of data in an XML file to the standard output.
+.IP \fBxml-unecho\fR(1) 15
+ungenerate an XML file into an xml-echo(1) expression.
+.IP \fBxml-wc\fR(1) 15
+print height, depth and number of tags for each XML file.
+.RE
+.SH COMMON\ UNIFIED\ COMMAND\ LINE\ CONVENTION
+Since it is often desired to work with only a small part of an XML
+file, most (but not all) commands in 
+.BR xml-coreutils (7)
+accept both a
+filename and one or more special strings called XPATHs.  
+The latter type of string matches a small subset of the W3C XPath 1.0 
+standard and 
+represents a set of nodes within an associated XML file.
+
+A command which uses the common unified command line convention typically
+has the following synopsis:
+.IP
+.B xml-command
+.RI [ OPTIONS ]
+.R [ 
+.RI [ FILE ]...
+.RI [: XPATH ]...
+.R ]...
+.P
+This indicates that after any OPTIONS, the remainder of the command line 
+consists of zero or more FILE(s), followed by zero or more XPATH(s),
+followed again by zero or more FILE(s) and zero or more XPATH(s), etc.
+Each XPATH is preceded by a colon (:), which is not part of the XPATH but
+serves to distinguish the argument from a generic operating system FILE.
+This method is unambiguous, since a FILE whose name happens to start with 
+a colon can always be preceded by an absolute or relative path which doesn't.
+.P
+The convention is that every unbroken series of XPATH(s) is associated
+with each FILE that forms part of the preceding unbroken series of FILE(s).
+Stated another way, every FILE is unambiguously associated with each of the
+XPATH(s) within the immediately following unbroken series.
+It is possible that the first unbroken series of XPATH(s) is not preceded
+by any FILE, in which case the standard input is taken to be the missing
+FILE. If the last unbroken series does not contain an XPATH, then 
+the special XPATH "/" is assumed.
+.P
+In the example below, the command operates on the following associations: (stdin,xp1),
+(file1,xp1,xp2,xp3), (file2,xp1,xp2,xp3) and (file3,"/"). Each such association may also be called a bundle.
+.IP
+.EX
+xml-command :xp1 file1 file2 :xp1 :xp2 :xp3 file3
+.EE
+.P
+The generic meaning of a bundle such as (file2,xp1,xp2,xp3) is that
+xml-command is performed on (or using) the set of nodes in file2 which
+match any one of xp1, xp2 or xp3.
+.SH XPATH\ SPECIFICATION
+An XPATH is a string which represents a subset of XML nodes in an 
+XML document, using syntax similar to W3C XPath 1.0. Only a (very small) part of XPath semantics is actually supported, which neither includes axes, namespaces, functions or complex predicates.
+.P
+The XPATH matching algorithm operates on path prefixes. This ensures that
+whenever a node is selected, all its children will be selected as well.
+The following examples are normative.
+.IP / 15
+selects the whole document.
+.IP /*/abc 15
+selects the nodes which are descendants of the tags named abc, which are children of the top level tag.
+.IP //abc
+selects a tag named abc (and all nodes which are descendants of it) which can occur anywhere in the whole document.
+.IP //abc/
+selects all nodes which are descendants of a tag named abc which can occur anywhere in the whole document, but does not select the tag abc itself.
+.IP /xhtml/body/p/
+selects each node which is a descendant of one of the top level <p>
+nodes within the body of an xhtml document.
+.IP /xhtml/body/p/*
+selects each node which is a descendant of a tag which is a child of a <p> tag which is a child of 
+a <body> tag which is a child of the root tag <xhtml>.
+.IP /abc@def
+selects the attribute named def of the top level tag named abc.
+.IP //abc@*
+selects each of the attributes of any tag named abc within the document.
+.IP /*/abc[2]
+selects the descendants of the second tag named abc that is a child of the top level tag.
+.SH WHITESPACE\ HANDLING
+.P
+Every 
+.BR xml-coreutils (7)
+command outputs either well formed XML, or
+traditional unix text. All whitespace text nodes in input XML documents are
+preserved verbatim in case they are being output directly as part of an XML document, 
+but no such guarantee is made if the command merely outputs text.
+.P
+If a commands generates its own XML fragments, then indenting is performed
+using TAB characters, rather than spaces, since this is simpler to process
+subsequently. The visual layout of XML documents for human consumption is 
+delegated to xml-fmt.
+.SH ECHO-LEAF
+The name echo-leaf refers to a character string 
+of the special form "[PATH]TEXT" that is used by several 
+commands including 
+.BR xml-echo "(1) and " xml-sed (1).
+Each echo-leaf represents a minimal XML fragment consisting
+of a text node and a hierarchical path, delimited by square brackets,
+which leads to the XML tag
+surrounding this text node. 
+.P
+A sequence of echo-leaves of an XML file plays a similar role to a sequence of lines 
+of a text file. Whereas it is customary to think of a line ending with a line
+break specification '\\n', here we think of a text node as preceded by a 
+path specification '[PATH]'.
+.P
+In an echo-leaf, the PATH is optional, but if it is present
+it must be enclosed in square brackets ([]). The TEXT is optional too.
+.P
+The PATH contains an absolute or relative path of an XML tag, and can
+optionally include attribute specifications. The TEXT contains ordinary
+text and may also contain escaped sequences representing special 
+XML constructs, but not another "[PATH]".
+.P
+An attribute specification is a string of the form "@NAME=VALUE",
+where NAME is the name of the attribute and VALUE is the associated
+string value. VALUE should not be surrounded by quotation marks
+(neither " nor '), but if it contains the special characters []@=
+these must be preceded by a backslash.
+.P
+The following PATH examples are
+normative.
+.IP "[/abc]"
+represents a root tag named "abc".
+.IP "[abc]"
+represents a tag named "abc" which is a child relative to the current 
+context.
+.IP "[.]"
+represents the tag that is currently in context.
+.IP "[..]"
+represents the parent of the tag that is currently in context.
+.IP "[/abc/def@importance=Earnest/../ghi]"
+represents a tag named "ghi" which is a sibling of a tag named
+"def" whose attribute "importance" has the value "Earnest", and whose
+parent tag is the root tag named "abc". 
+.P
+More details about the typical contents of PATH and TEXT in an 
+echo-leaf can be found in the 
+.BR xml-echo (1)
+manpage.
+.SH AUTHORS
+.P
+.MT laird@lbreyer.com
+Laird A. Breyer
+.ME
+is the original author of this software.
+The source code (GPLv3 or later) for the latest version is available at the
 following locations: 
 .PP
-.na
-http://www.lbreyer.com/gpl.html
+.na 
+.UR http://www.lbreyer.com/gpl.html
+.UE
 .br
-http://dbacl.sourceforge.net
+.UR http://xml-coreutils.sourceforge.net
+.UE
 .ad
 .SH BUGS
 .PP
-The xml-coreutils collection is still incomplete, but already usable for limited
-tasks. 
-.SH AUTHOR
-.PP
-Laird A. Breyer <laird@lbreyer.com>
+The xml-coreutils collection is still incomplete, but already usable for limited tasks. The behaviour of command options and output formats are subject to change without warning prior to v1.0 of the software.
 .SH SEE ALSO
 .PP
 .BR xml-cat (1)
+.BR xml-cp (1)
+.BR xml-cut (1)
 .BR xml-echo (1)
-.BR xml-printf (1)
-.BR xml-less (1)
-.BR xml-strings (1)
-.BR xml-ls (1)
 .BR xml-find (1)
+.BR xml-fixtags (1)
+.BR xml-fmt (1)
+.BR xml-grep (1)
+.BR xml-head (1)
+.BR xml-less (1)
+.BR xml-ls (1)
+.BR xml-mv (1)
+.BR xml-printf (1)
+.BR xml-rm (1)
+.BR xml-sed (1)
+.BR xml-strings (1)
+.BR xml-unecho (1)
+.BR xml-wc (1)

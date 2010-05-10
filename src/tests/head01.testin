@@ -1,0 +1,29 @@
+_PURPOSE_
+xml-head combined -c and -l test: Limit number and length of lines.
+_INPUT_ 
+<?xml version="1.0"?>
+<root>
+	blah blah blah
+	blah blah blih blah
+	<x>
+		blah blah blah
+		blah blah blih blah
+	</x>
+	bli
+	bli
+	bli
+</root>
+_COMMAND_
+xml-head -c 4 -n 2
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<root>
+	bla
+<x>
+		bl
+</x>
+	bli
+</root>
+_END_

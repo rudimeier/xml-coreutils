@@ -21,13 +21,11 @@
 #ifndef IO_H
 #define IO_H
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include "common.h"
 
 typedef struct {
   int fd;
-  unsigned long bytesread;
+  long bytesread;
   byte_t *buf;
   byte_t *pos;
   size_t buflen;
@@ -38,10 +36,11 @@ typedef struct {
 #define STDOUT_FILENO 1
 #define STDERR_FILENO 2
 
-#if !defined(O_BINARY)
-#define O_BINARY 0
-#define O_TEXT   0
-#define setmode(_f,_m)  (void)0
+#ifndef _O_BINARY
+#define _O_BINARY 0
+#endif
+#ifndef O_BINARY
+#define O_BINARY _O_BINARY
 #endif
 
 void init_file_handling();
@@ -50,8 +49,12 @@ void exit_file_handling();
 bool_t open_file_stream(stream_t *strm, const char *path);
 bool_t close_stream(stream_t *strm);
 bool_t shift_stream(stream_t *strm, size_t n);
+bool_t seekbuf_stream(stream_t *strm, long numbytes);
 bool_t read_stream(stream_t *strm, byte_t *buf, size_t buflen);
 
 bool_t write_file(int fd, const byte_t *buf, size_t buflen);
+
+bool_t exec_cmdline(const char *filename, const char **argv);
+bool_t reaper(pid_t pid);
 
 #endif

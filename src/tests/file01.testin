@@ -1,0 +1,11 @@
+_PURPOSE_
+xml-file general XML header data.
+_INPUT_ 
+<?xml version="1.0"?>
+_COMMAND_
+xml-file stdin
+_EXITCODE_
+0
+_OUTPUT_
+stdin: XML text
+_END_

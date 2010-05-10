@@ -1,0 +1,17 @@
+# NOTE: In the COMMAND below, an extra \n is added at the end, because
+# xml-unecho does not interpret the footwrapper (ie the \n after </a> in
+# INPUT) since the xml parser stops at the closing tag.
+_PURPOSE_
+xml-unecho escapes forward slashes in attribues.
+_INPUT_ 
+<?xml version="1.0"?>
+<abc:def ghi:jkl="http://www.example.net/an/url/path.html">
+123
+</abc:def>
+_COMMAND_
+true; echo -n "`cat "$TMP_PATH/input" | xml-unecho --xml-sed`\n" 
+_EXITCODE_
+0
+_OUTPUT_
+[/abc:def@ghi:jkl=http:\/\/www.example.net\/an\/url\/path.html]\n123\n
+_END_

@@ -1,0 +1,19 @@
+_PURPOSE_
+xml-fixtags with broken attribute quotes.
+_INPUT_ 
+<?xml version="1.0"?>
+<a x="abc" y="def ghi" z=klm nop>
+hello
+<br/>
+</a>
+_COMMAND_
+xml-fixtags
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<a x="abc" y="def ghi" z="klm" nop="">
+hello
+<br/>
+</a>
+_END_

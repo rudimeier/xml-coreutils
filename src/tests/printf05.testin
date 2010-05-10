@@ -1,0 +1,15 @@
+_PURPOSE_
+xml-printf showing attribute and predicate interaction.
+_INPUT_ 
+<?xml version="1.0"?>
+<a>
+	<b c="y">abc</b>
+	<b c="x">def</b>
+</a>
+_COMMAND_
+xml-printf "%s before %s\n" "$TMP_PATH/input" ://b[2]@c ://b@c[1]
+_EXITCODE_
+0
+_OUTPUT_
+x before y
+_END_

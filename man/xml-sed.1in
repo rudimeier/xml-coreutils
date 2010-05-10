@@ -1,0 +1,164 @@
+\" t
+.TH XML-SED 1 "xml-coreutils" "Version @VERSION@" ""
+.SH NAME
+xml-sed \- stream editor for filtering and transforming an XML file.
+.SH SYNOPSIS
+.HP
+.B xml-sed 
+.RI [ OPTION ]...
+.I SCRIPT
+.RI [
+.RI [ FILE ]
+.RI [: XPATH ]...
+.RI ]
+.SH DESCRIPTION
+.PP
+.B xml-sed
+is a stream editor for XML files similar to
+.BR sed (1). 
+It can be used to perform basic
+text and structural transformations on an input FILE or the standard input,
+with the results printed on the standard output. 
+.B xml-sed
+only makes a single pass through the input, and is particularly suited
+for filtering XML documents in a pipeline.
+.P
+.B xml-sed
+operates by first splitting its input into echo-leaves, which are described in
+.BR xml-coreutils (7)
+and should be each thought of as analogous to a single line of text processed
+by 
+.BR sed (1).
+As each echo-leaf is read, it is placed in the pattern
+space, where editing commands can operate. Once all editing has taken place,
+the pattern space is printed in the manner of
+.BR xml-echo (1),
+thus converting the (now modified) echo-leaf into a real XML fragment on
+the standard output. At this point, the next echo-leaf is read and the cycle
+is repeated.
+.P
+If one or more XPATH(s) are present, then editing will only be performed on the selected nodes, ie unselected nodes cannot be modified. The case where
+no XPATH is present implicitly selects all nodes for editing.
+.P
+You may find the following command useful initially to better understand 
+this process:
+.IP
+.EX
+xml-sed --unecho '' myfile
+.EE
+.P
+Each editing command in 
+.B xml-sed
+consists of an (optional) address followed by a command code. If no
+address is present, then this command operates on each echo-leaf in turn,
+otherwise it operates only on the echo-leaves which match the address.
+.P
+The simplest address is a numerical range which applies to the input 
+ordering of the echo-leaves. The --unecho switch shows the required
+ordinal numbers.
+.P
+The single most useful command is the 's' command, which substitutes 
+text within the echo-leaf. The syntax of the 's' command is identical
+to the 's' command of 
+.BR sed (1),
+but extends the available flags slightly, to better adapt to the 
+added structure of an echo-leaf.
+.SH OPTIONS
+.IP --unecho
+Print the pattern space as an XML comment, just before the echo-leaf is
+output, but after all editing commands have been performed. In addition
+to the pattern space, the comment also includes the echo-leaf number. 
+Moreover, the selection status (if the node is selected by an XPATH) 
+is marked with a star.
+.SH EDITING COMMANDS
+.P
+Each editing command is optionally preceded by an address, which can 
+take the form NUM or NUM1,NUM2. In the first case, the command is
+executed when the echo-leaf number is NUM, whereas in the latter case
+the command is executed for all echo-leaves numbered NUM1 (incl.) to
+NUM2 (excl.). The special symbol "$" represents the number infinity.
+If no address is specified, the command applies to all echo-leaves
+in the input. If a block is preceded by an address, then that address 
+is used as a default for all commands within the block.
+.IP "#comment"
+The comment extends until the end of the line.
+.IP {
+Begin a block of commands. Must end with }.
+.IP }
+End a block of commands.
+.IP "a text"
+Append text after echo-leaf. Embedded newlines must be quoted with backslash.
+.IP "c text"
+Replace echo-leaf with text. Embedded newlines must be quoted with backslash.
+.IP "i text"
+Insert text before echo-leaf. Embedded newlines must be quoted with backslash.
+.IP "b label"
+Branch to label, or end of script if no label provided.
+.IP ": label"
+Define label for b and t commands.
+.IP "t label"
+If a 's' command has successfully substituted a pattern in the pattern space,
+branch to label.
+.IP d
+Delete the whole pattern space and start next command cycle from the beginning.
+.IP D
+Delete the first echo-leaf in the pattern space and start next command cycle.
+.IP h
+Copy pattern space into hold space.
+.IP H
+Append pattern space into hold space.
+.IP g
+Copy hold space into pattern space.
+.IP G
+Append hold space into pattern space.
+.IP l
+Print the current pattern space as an echo-leaf wrapped in an XML comment.
+.IP n
+Read the next echo-leaf into the pattern space.
+.IP N
+Append the next echo-leaf into the pattern space.
+.IP p
+Print the current pattern space.
+.IP P
+Print the first echo-leaf contained in the pattern space.
+.IP q
+Quit xml-sed, closing all open tags.
+.IP s/regex/replacement/flags
+If regex matches within the pattern space, substitute the replacement.
+With no flags, the match always skips the PATH section of the first echo-leaf.
+With the x flag, the match applies only to the PATH section of the first echo-leaf.
+With the z flag, the match applies to the full pattern space.
+.IP x
+Swap the hold and pattern spaces.
+.IP y/source/dest/
+Transliterate the characters in source with the corresponding characters in dest.
+.SH EXIT STATUS
+xml-sed returns 0 on success, or 1 otherwise.
+.SH EXAMPLE
+.P
+Replace a tag name:
+.EX
+cat notebook.xml | xml-sed 's/root/book/x'
+.EE
+.SH BUGS
+.P
+The current version of xml-sed doesn't handle doctypes or processing instructions.
+.SH AUTHORS
+.P
+.MT laird@lbreyer.com
+Laird A. Breyer
+.ME
+is the original author of this software.
+The source code (GPLv3 or later) for the latest version is available at the
+following locations: 
+.PP
+.na 
+.UR http://www.lbreyer.com/gpl.html
+.UE
+.br
+.UR http://xml-coreutils.sourceforge.net
+.UE
+.ad
+.SH SEE ALSO
+.PP
+.BR xml-coreutils (7)

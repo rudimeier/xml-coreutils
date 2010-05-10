@@ -1,0 +1,102 @@
+\" t
+.TH XML-FIXTAGS 1 "xml-coreutils" "Version @VERSION@" ""
+.SH NAME
+xml-fixtags \- convert HTML into XML on the standard output.
+.SH SYNOPSIS
+.HP
+.B xml-fixtags 
+.RI [ OPTION ]...
+.RI [ FILE ]
+.SH DESCRIPTION
+.PP
+.B xml-fixtags
+aggressively
+converts a single HTML or XML file, obtained from the standard input or FILE, into a well formed XML file, written to the standard output, that can be processed
+by 
+.BR xml-coreutils (7)
+without errors. 
+.PP
+The output that is produced by
+.B xml-fixtags
+is almost certainly not what you want, and you should nearly always use
+a more sophisticated tool such as 
+.BR tidy (1),
+or
+.BR xmllint (1)
+for ordinary conversions.
+.PP
+.B xml-fixtags
+is useful for processing documents which are not well formed to begin with,
+and where it does not matter if the corrections resemble closely what the
+original author intended, or when there are no alternatives installed on 
+the system.
+This makes the 
+.BR xml-coreutils (7)
+more robust in a transparent way, without duplicating the repair heuristics
+in each command.
+.PP
+.B xml-fixtags
+uses a very simple algorithm which tries to localise the effect
+of well formedness errors in the input with minimal disruption to
+the other parts of the input. If the input is already well formed XML,
+then no modifications are performed.
+.PP
+The output of 
+.B xml-fixtags
+is not guaranteed to be valid, and does not follow any rules specific to
+certain XML or HTML documents. It is merely guaranteed to be well formed.
+.SH TRANSFORMATIONS
+.P
+This section describes the main transformations that are performed by
+.BR xml-fixtags .
+.P
+If the file does not start with '<', then an extra root tag will be added
+automatically (same effect as --root-wrap). As soon as a zero depth closing
+tag is encountered, the output ends.
+.P
+If a closing tag is found which is not properly nested, all the children
+of the tag are closed immediately as well.
+If a closing tag is found which was not previously opened, it is opened and closed immediately. For the purposes of the preceding rules, tag names are
+searched case insensitively.
+.P
+If an unknown entity reference "&name;" is found which has not been
+declared before, it is replaced with the text "&amp;name;".
+.P
+If the --html switch is used, then the input is assumed to be HTML and
+the rules for opening and closing tags will also depend on the type of tag.
+The html, head, and body tags are inserted if they are missing, but full
+DTD compliance is not attempted.
+.SH OPTIONS
+.IP --root-wrap
+Adds a standard root wrapper around the document, thereby incrementing
+the depth of every tag. This can be used to 
+prevent early truncation of the document when a zero depth closing tag
+would otherwise be found.
+.IP --html
+Assume that the input document is HTML. This switches on some extra heuristics. It does not imply valid XHTML on output.
+.IP --xml
+Assume that the input document is XML. This is the default.
+.SH EXIT STATUS
+xml-fixtags returns 0 on success, or 1 otherwise.
+.SH BUGS
+.P
+xml-fixtags is still primitive, and can fail to fix an input document.
+.SH AUTHORS
+.P
+.MT laird@lbreyer.com
+Laird A. Breyer
+.ME
+is the original author of this software.
+The source code (GPLv3 or later) for the latest version is available at the
+following locations: 
+.PP
+.na 
+.UR http://www.lbreyer.com/gpl.html
+.UE
+.br
+.UR http://xml-coreutils.sourceforge.net
+.UE
+.ad
+.SH SEE ALSO
+.PP
+.BR xml-coreutils (7)

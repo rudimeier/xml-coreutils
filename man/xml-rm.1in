@@ -1,0 +1,64 @@
+\" t
+.TH XML-RM 1 "xml-coreutils" "Version @VERSION@" ""
+.SH NAME
+xml-rm \- remove nodes from XML files.
+.SH SYNOPSIS
+.HP
+.B xml-rm 
+.RI [ OPTION ]...
+.R [
+.RI [ FILE ]...
+.RI : XPATH ...
+.R ]...
+.SH DESCRIPTION
+.P
+.B xml-rm
+removes the selected XML nodes in each FILE on the command line, or
+on the standard input if no FILE is given. The selected nodes for each
+FILE must match the associated XPATH(s) according to the common unified 
+command line convention described in
+.BR xml-coreutils (7).
+.P
+To update a FILE that is not the standard input, the --write-files switch
+must be given. In that case, each input file is written atomically.
+.P
+If the --write-files switch is not given, then 
+.B xml-rm
+only removes nodes from a document on the standard input, writing the 
+result to the standard output. This is the default.
+.P
+If an XPATH ends with a slash, then only the text value of the
+matching node(s) is removed (ie keeping the surrounding tags
+intact). If the XPATH does not end with a slash, then the surrounding
+tag is also removed. It is best to experiment.
+.SH OPTIONS
+.IP --write-files
+This option must be given if the input FILE(s) are to be updated on
+the filesystem. Without it, only the standard input is filtered.
+.SH EXIT STATUS
+xml-rm returns 0 on success, or 1 otherwise.
+.SH EXAMPLE
+.P
+Display a file without a certain attribute:
+.EX
+xml-rm employees.xml ://*@gender stdout
+.EE
+.SH AUTHORS
+.P
+.MT laird@lbreyer.com
+Laird A. Breyer
+.ME
+is the original author of this software.
+The source code (GPLv3 or later) for the latest version is available at the
+following locations: 
+.PP
+.na 
+.UR http://www.lbreyer.com/gpl.html
+.UE
+.br
+.UR http://xml-coreutils.sourceforge.net
+.UE
+.ad
+.SH SEE ALSO
+.PP
+.BR xml-coreutils (7)

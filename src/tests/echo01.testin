@@ -1,0 +1,13 @@
+_PURPOSE_
+xml-echo a simple hello
+_INPUT_ 
+_COMMAND_
+xml-echo hello
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<root>
+hello
+</root>
+_END_

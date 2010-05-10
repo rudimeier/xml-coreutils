@@ -1,0 +1,61 @@
+# NOTE: In the COMMAND below, an extra \n is added at the end, because
+# xml-unecho does not interpret the footwrapper (ie the \n after </a> in
+# INPUT) since the xml parser stops at the closing tag.
+_PURPOSE_
+xml-unecho can list the xml-sed echo-leaves.
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+</a>
+_COMMAND_
+true; echo -n "`cat "$TMP_PATH/input" | xml-unecho --xml-sed`\n" 
+_EXITCODE_
+0
+_OUTPUT_
+[/a]\n\t
+[/a/b@bb=A B]\n\t\t
+[/a/b@bb=A B/c]\n\t\t\t
+[/a/b@bb=A B/c/d]C D E
+[/a/b@bb=A B/c]\n\t\t\t
+[/a/b@bb=A B/c/e]F G
+[/a/b@bb=A B/c]\n\t\t\t
+[/a/b@bb=A B/c/f]H
+[/a/b@bb=A B/c]\n\t\t\t
+[/a/b@bb=A B/c/g]I
+[/a/b@bb=A B/c]\n\t\t
+[/a/b@bb=A B]\n\t\t
+[/a/b@bb=A B/h]J K L
+[/a/b@bb=A B]\n\t
+[/a]\n\t
+[/a/b@bb=M N]\n\t\t
+[/a/b@bb=M N/c]\n\t\t\t
+[/a/b@bb=M N/c/d]O D E
+[/a/b@bb=M N/c]\n\t\t\t
+[/a/b@bb=M N/c/e]F G
+[/a/b@bb=M N/c]\n\t\t\t
+[/a/b@bb=M N/c/f]H
+[/a/b@bb=M N/c]\n\t\t\t
+[/a/b@bb=M N/c/g]I
+[/a/b@bb=M N/c]\n\t\t
+[/a/b@bb=M N]\n\t\t
+[/a/b@bb=M N/h]J K P
+[/a/b@bb=M N]\n\t
+[/a]\n
+_END_

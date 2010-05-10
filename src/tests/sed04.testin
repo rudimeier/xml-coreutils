@@ -1,0 +1,33 @@
+_PURPOSE_
+xml-sed structural surgery.
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+</a>
+_COMMAND_
+xml-sed 's!/c/d!]abc\n\t[x/y]def[..]\n\t[../u!z'
+_EXITCODE_
+0
+_OUTPUT_
+<a>
+	<b bb="A B">
+		<c>
+			</c>abc
+	<x><y>def</y>
+	</x><u>C D E</u><c>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+</a>
+_END_

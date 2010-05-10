@@ -1,0 +1,21 @@
+_PURPOSE_
+xml-cat is idempotent.
+_INPUT_ 
+<?xml version="1.0"?>
+<root>
+<greeting>
+Hello
+</greeting>
+</root>
+_COMMAND_
+xml-cat | xml-cat
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<root>
+<greeting>
+Hello
+</greeting>
+</root>
+_END_

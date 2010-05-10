@@ -1,0 +1,11 @@
+_PURPOSE_
+xml-echo processing instruction test.
+_INPUT_ 
+_COMMAND_
+xml-echo -e '[?zml@version=1.0@encoding=UTF-8]'
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<?zml version=1.0 encoding="UTF-8"?>
+_END_

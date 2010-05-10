@@ -1,0 +1,49 @@
+_PURPOSE_
+xml-mv move (with replacement) some nodes, operating on stdin.
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+</a>
+_COMMAND_
+xml-mv stdin :/a/b/c/e stdin :/a/b/h/
+_EXITCODE_
+0
+_OUTPUT_
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h><e>F G</e><e>F G</e></h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+</a>
+_END_

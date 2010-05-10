@@ -1,0 +1,17 @@
+_PURPOSE_
+xml-sed path substitution test.
+_INPUT_ 
+<?xml version="1.0"?>
+<greeting>
+	hello
+</greeting>
+_COMMAND_
+xml-sed 's/greeting/salutation/x'
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<salutation>
+	hello
+</salutation>
+_END_

@@ -1,0 +1,8 @@
+<products>
+
+  <product price="3">Chicken</product>
+  <product price="11.50">Lobster</product>
+  <product price=".20">Apple</product>
+  <product price="1.09">Milk (2 litres)</product>
+
+</products>

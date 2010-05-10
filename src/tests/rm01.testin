@@ -1,0 +1,39 @@
+_PURPOSE_
+xml-rm a full node.
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+</a>
+_COMMAND_
+xml-rm :/a/b/c
+_EXITCODE_
+0
+_OUTPUT_
+<a>
+	<b bb="A B">
+		
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		
+		<h>J K P</h>
+	</b>
+</a>
+_END_

@@ -1,0 +1,15 @@
+_PURPOSE_
+xml-printf choosing a node with a numerical predicate.
+_INPUT_ 
+<?xml version="1.0"?>
+<a>
+	<b>abc</b>
+	<b>def</b>
+</a>
+_COMMAND_
+xml-printf "[%s]\n" "$TMP_PATH/input" :/a/b[2]
+_EXITCODE_
+0
+_OUTPUT_
+[def]
+_END_

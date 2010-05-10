@@ -1,0 +1,22 @@
+_PURPOSE_
+xml-printf showing attribute, predicate, and newline interaction.
+_INPUT_ 
+<products>
+		<product price="3">Chicken</product>
+  <product price="11.50">Lobster</product>
+  <product price=".20">Apple</product>
+  <product price="1.09">Milk (2 litres)</product>
+</products>
+_COMMAND_
+xml-printf "[%s][%s]\n" ://product ://product@price
+_EXITCODE_
+0
+_OUTPUT_
+[Chicken
+Lobster
+Apple
+Milk (2 litres)][3
+11.50
+.20
+1.09]
+_END_

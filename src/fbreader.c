@@ -22,13 +22,14 @@
 #include "io.h"
 #include "mem.h"
 #include "fbreader.h"
-#include "error.h"
+#include "myerror.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 bool_t open_fileblockreader(fbreader_t *fbr, const char *path, size_t maxblocks) {
   struct stat statbuf;
@@ -93,8 +94,8 @@ bool_t read_fileblockreader(fbreader_t *fbr, off_t offset, byte_t **begin, byte_
       if( !insert_block_blockmanager(&fbr->bm, block) ) {
 	return FALSE;
       }
-/*       debug("READING BLOCK %d\n", blockid); */
     } 
+/*     debug("READING BLOCK %d %d\n", block->blockid, block->bytecount);  */
     if( get_buffer_blockmanager(&fbr->bm, block, &buf, &buflen) ) {
       *begin = buf + MIN(offset % fbr->blksize, block->bytecount);
       *end = buf + block->bytecount;
@@ -111,6 +112,20 @@ bool_t touch_fileblockreader(fbreader_t *fbr, off_t offset) {
     blockid = offset / fbr->blksize;
     if( find_block_blockmanager(&fbr->bm, blockid, &block) ) {
       block->touch++;
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+bool_t refresh_fileblockreader(fbreader_t *fbr) {
+  struct stat statbuf;
+  if( fbr ) {
+    fstat(fbr->fd, &statbuf);
+    if(fbr->mtime < statbuf.st_mtime) {
+      fbr->mtime = statbuf.st_mtime;
+      fbr->size = statbuf.st_size;
+      reset_blockmanager(&fbr->bm);
       return TRUE;
     }
   }

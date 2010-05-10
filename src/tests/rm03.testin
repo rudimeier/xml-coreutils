@@ -1,0 +1,39 @@
+_PURPOSE_
+xml-rm the contents of a node, writing the file in-place.
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+</a>
+_COMMAND_
+true; xml-rm --write-files "$TMP_PATH/input" :/a/b/c/ ; cat "$TMP_PATH/input"
+_EXITCODE_
+0
+_OUTPUT_
+<a>
+	<b bb="A B">
+		<c></c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c></c>
+		<h>J K P</h>
+	</b>
+</a>
+_END_

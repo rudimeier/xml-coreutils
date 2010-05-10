@@ -1,0 +1,36 @@
+_PURPOSE_
+xml-head combined -c and -l test: Limit number and length of lines.
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+</a>
+_COMMAND_
+xml-head -t 3
+_EXITCODE_
+0
+_OUTPUT_
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+</c>
+</b>
+</a>
+_END_

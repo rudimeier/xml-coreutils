@@ -1,0 +1,40 @@
+_PURPOSE_
+xml-grep a chardata string, also prints the ancestor nodes
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+</a>
+_COMMAND_
+xml-grep 'J'
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<root>
+	<b bb="A B">
+		
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		
+		<h>J K P</h>
+	</b>
+</root>
+_END_

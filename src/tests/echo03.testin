@@ -1,0 +1,14 @@
+_PURPOSE_
+xml-echo -en an elaborate hello without paths or indentation.
+_INPUT_ 
+_COMMAND_
+xml-echo -en 'This is elaborate:\n\t\tHello\nThank you.\n'
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<root>This is elaborate:
+		Hello
+Thank you.
+</root>
+_END_

@@ -1,0 +1,44 @@
+_PURPOSE_
+xml-find EXECNODE test with {}, assumes "which echo" works.
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+</a>
+_COMMAND_
+xml-find -execnode "`which echo`" '{}' ';'
+_EXITCODE_
+0
+_OUTPUT_
+a
+b
+c
+d
+e
+f
+g
+h
+b
+c
+d
+e
+f
+g
+h
+_END_

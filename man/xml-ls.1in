@@ -1,39 +1,54 @@
 \" t
 .TH XML-LS 1 "xml-coreutils" "Version @VERSION@" ""
 .SH NAME
-xml-ls \- display information about an XML file on the standard output
+xml-ls \- list the contents of an XML file.
 .SH SYNOPSIS
 .HP
-.B xml-ls
-[OPTION] [FILE]...
+.B xml-ls 
+.RI [ OPTION ]...
+.RI [
+.RI [ FILE ]...
+.RI [: XPATH ]...
+.RI ]...
 .SH DESCRIPTION
 .PP
 .B xml-ls
-prints the first level of hierarchical structure in FILE, in a manner
-similar to the way ls prints file and directory names. If no FILE is listed,
-operates on standard input.
-.PP
-This command is very much experimental at present, as it isn't clear yet what
-a good display format should look like.
-.SH EXAMPLES
-.PP
-xml-ls
-.IP
-.SH SOURCE
-.PP
-The source code for the latest version of this program is available at the
+prints the first level of hierarchical structure matching XPATH in FILE, 
+in a manner similar to the way 
+.BR ls (1)
+prints file and directory names, but as an XML file. 
+If no FILE is given, then the standard input is read.
+By repeatedly varying the XPATH, the structure of an XML document can be
+inferred.
+.SH OPTIONS
+.IP --attributes
+Show the attributes if present.
+.SH EXIT STATUS
+xml-ls returns 0 on success, or 1 otherwise.
+.SH EXAMPLE
+Summarize the third level structure of a document:
+.EX
+xml-ls -a radio.rss :/rss/channel/item
+.EE
+.SH BUGS
+It isn't clear yet what a good display format for xml-ls should look like,
+and this may evolve substantially.
+.SH AUTHORS
+.P
+.MT laird@lbreyer.com
+Laird A. Breyer
+.ME
+is the original author of this software.
+The source code (GPLv3 or later) for the latest version is available at the
 following locations: 
 .PP
-.na
-http://www.lbreyer.com/gpl.html
+.na 
+.UR http://www.lbreyer.com/gpl.html
+.UE
 .br
-http://dbacl.sourceforge.net
+.UR http://xml-coreutils.sourceforge.net
+.UE
 .ad
-.SH BUGS
-.PP
-.SH AUTHOR
-.PP
-Laird A. Breyer <laird@lbreyer.com>
 .SH SEE ALSO
 .PP
 .BR xml-coreutils (7)

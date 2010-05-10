@@ -21,9 +21,12 @@
 #include "common.h"
 #include "fbparser.h"
 #include "cursor.h"
-#include "error.h"
+#include "myerror.h"
 #include "lessui.h"
 #include "stdout.h"
+#include "io.h"
+#include "tempfile.h"
+#include "mysignal.h"
 
 #include <stdio.h>
 #include <getopt.h>
@@ -36,13 +39,13 @@ extern char *progname;
 extern char *inputfile;
 extern long inputline;
 
-extern int cmd;
+extern volatile flag_t cmd;
 int u_options = 0;
 
 #define LESS_VERSION    0x01
 #define LESS_HELP       0x02
 #define LESS_USAGE \
-"Usage: xml-less FILE\n" \
+"Usage: xml-less [OPTION]... FILE\n" \
 "Interactively display the XML document contained in FILE on the terminal.\n"
 
 void set_option(int op, char *optarg) {
@@ -57,41 +60,65 @@ void set_option(int op, char *optarg) {
   }
 }
 
+
 int main(int argc, char **argv) {
   signed char op;
   lessui_t ui;
   fbparser_t fbp;
+  int fd = -1;
+  pid_t pid;
   struct option longopts[] = {
     { "version", 0, NULL, LESS_VERSION },
     { "help", 0, NULL, LESS_HELP },
+    { 0 }
   };
 
   progname = "xml-less";
   inputfile = "";
   inputline = 0;
   
-
   while( (op = getopt_long(argc, argv, "",
-			   longopts, NULL)) > -1 ) {
+  			   longopts, NULL)) > -1 ) {
     set_option(op, optarg);
   }
 
+  init_signal_handling();
+  init_file_handling();
+  init_tempfile_handling();
   open_stdout();
 
   if( create_lessui(&ui) ) {
-
+    
     inputfile = (optind > -1) ? argv[optind] : NULL;
+    if( !inputfile || (strcmp("stdin",inputfile) == 0) ) {
+      fd = save_stdin_tempfile(&inputfile, &pid, progname);
+      if( fd == -1 ) {
+  	free(inputfile);
+  	inputfile = NULL;
+      }
+    }
     if( inputfile && open_fileblockparser(&fbp, inputfile, 32) ) {
 
       mainloop_lessui(&ui, &fbp);
-
       close_fileblockparser(&fbp);
+    }
+
+    /* cleanup stdin reader and tempfile */
+    if( fd != -1 ) {
+      reaper(pid);
+
+      close(fd);
+      remove_tempfile(inputfile);
+      free(inputfile);
     }
 
     free_lessui(&ui);
   }
 
   close_stdout();
+  exit_tempfile_handling();
+  exit_file_handling();
+  exit_signal_handling();
 
   return EXIT_SUCCESS;
 }

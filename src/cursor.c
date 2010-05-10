@@ -21,25 +21,27 @@
 #include "common.h"
 #include "mem.h"
 #include "cursor.h"
-#include "error.h"
+#include "myerror.h"
 #include <string.h>
 
 void debug_cursor(const cursor_t *cursor) {
   size_t i;
   debug("[");
   for(i = 0; i < cursor->top; i++) {
-    debug("%ld/%d/%d ", 
+    debug("%lx/%d/%d ", 
 	  cursor->stack[i].off, cursor->stack[i].ord, cursor->stack[i].nord);
   }
   debug("]\n"); 
 }
 
 bool_t create_cursor(cursor_t *cursor) {
+  bool_t ok = TRUE;
   if( cursor ) {
     cursor->top = 0;
-    return ( create_mem(&cursor->stack, &cursor->stacklen, 
-			sizeof(coff_t), CURSOR_MINSTACK) &&
-	    reset_cursor(cursor) );
+    ok &= create_mem(&cursor->stack, &cursor->stacklen, 
+		     sizeof(coff_t), CURSOR_MINSTACK);
+    if( ok ) { reset_cursor(cursor); }
+    return ok;
   }
   return FALSE;
 }

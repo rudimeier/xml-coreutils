@@ -21,22 +21,23 @@
 #ifndef FBREADER_H
 #define FBREADER_H
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
+#include "common.h"
 #include "blockmgr.h"
+#include <unistd.h>
 
 typedef struct {
   int fd;
   off_t size;
   size_t blksize;
   blockmanager_t bm;
+  time_t mtime;
 } fbreader_t;
 
 bool_t open_fileblockreader(fbreader_t *fbr, const char *path, size_t maxblocks);
 bool_t close_fileblockreader(fbreader_t *fbr);
 bool_t read_fileblockreader(fbreader_t *fbr, off_t offset, byte_t **begin, byte_t **end);
 bool_t touch_fileblockreader(fbreader_t *fbr, off_t offset);
+bool_t refresh_fileblockreader(fbreader_t *fbr);
+
 #endif
  

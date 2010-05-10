@@ -1,0 +1,15 @@
+_PURPOSE_
+xml-printf printing an attribute
+_INPUT_ 
+<?xml version="1.0"?>
+<a>
+	<b c="x">abc</b>
+	<b>def</b>
+</a>
+_COMMAND_
+xml-printf "an x is an %s\n" "$TMP_PATH/input" ://b@c
+_EXITCODE_
+0
+_OUTPUT_
+an x is an x
+_END_

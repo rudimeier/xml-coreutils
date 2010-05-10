@@ -29,7 +29,7 @@ bool_t check_skip(const skip_t *skip, const fbparserinfo_t *pinfo) {
 /*       debug_cursor(cursor); */
       switch(skip->what) {
       case any:
-	return TRUE;
+	return TRUE; /* this is probably NOT what you want */
       case eq_depth:
 	return (pinfo->depth == skip->depth);
       case gt_depth:
@@ -40,6 +40,8 @@ bool_t check_skip(const skip_t *skip, const fbparserinfo_t *pinfo) {
 	return (pinfo->depth < skip->depth);
       case lte_depth:
 	return (pinfo->depth <= skip->depth);
+      case not_endtag:
+	return (pinfo->nodetype != n_end_tag);
       }
     }
   }
@@ -71,6 +73,19 @@ void node_forward_skip(fbparserinfo_t *pinfo, void *user) {
   }
 }
 
+/* this is an all purpose cursor iterator. The input cursor is modified
+ * to point to the next cursor as defined by skip semantics.
+ * skip->count is the number of nodes which satisfy a condition to skip.
+ * skip->depth is a condition on the depth. All nodes related to depth 
+ * are skipped.
+ * skip->nodemask is a condition on the node type that must be true if
+ * skipping should count for something.
+ *
+ * NOTE: if the cursor ends up on a end-tag, then you will probably get
+ * errors with parsing later. This should not be a problem if the condition
+ * involves the depth, because end-tags have greater depth than the corresponding
+ * start-tag (see also end_tag_fbp()).
+ */
 bool_t forward_skip(skip_t *skip, cursor_t *cursor, fbparser_t *fbp) {
   position_t pos;
   fbcallback_t callbacks;
@@ -94,3 +109,58 @@ bool_t forward_skip(skip_t *skip, cursor_t *cursor, fbparser_t *fbp) {
 }
 
 
+typedef struct {
+  bool_t done;
+  cursor_t *cursor;
+  off_t target;
+  skip_t *skip;
+} backward_t;
+
+void node_backward_skip(fbparserinfo_t *pinfo, void *user) {
+  backward_t *bw = (backward_t *)user;
+  if( pinfo && bw ) {
+    bw->done = (pinfo->offset >= bw->target);
+    if( !bw->done && check_skip(bw->skip, pinfo) ) {
+      bump_cursor(bw->cursor, pinfo->depth, pinfo->offset, pinfo->nodecount);
+    }
+  }
+}
+
+/* finds the last node satisfying skip criteria before the cursor.
+ * Algoritm is not efficient. Returns origin cursor if no other
+ * cursor satisfies the criteria. Not all criteria work properly.
+ */
+bool_t backward_skip(skip_t *skip, cursor_t *cursor, fbparser_t *fbp) {
+  position_t pos;
+  fbcallback_t callbacks;
+  backward_t bw;
+
+  if( skip && cursor && fbp ) {
+    while( skip->count-- > 0 ) {
+
+      bw.done = FALSE;
+      bw.target = get_top_offset_cursor(cursor);
+      bw.skip = skip;
+
+
+      if( !parent_cursor(cursor) ) {
+	return TRUE;
+      }
+      bw.cursor = cursor;
+
+      memset(&callbacks, 0, sizeof(fbcallback_t));
+      callbacks.node = node_backward_skip;
+      callbacks.user = (void *)&bw;
+      if( parse_first_fileblockparser(fbp, cursor, NULL, &pos) ) {
+	setup_fileblockparser(fbp, &callbacks);
+	while( !bw.done && parse_next_fileblockparser(fbp, &pos) );
+	if( !bw.done ) {
+	  return FALSE; /* this is probably serious */
+	}
+      }
+
+    }
+    return TRUE;
+  }
+  return FALSE;
+}

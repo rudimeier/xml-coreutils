@@ -19,9 +19,11 @@
  */
 
 #include "common.h"
-#include "error.h"
+#include "mysignal.h"
+#include "myerror.h"
 #include "parser.h"
 #include <string.h>
+
 
 extern char *inputfile;
 
@@ -52,9 +54,10 @@ bool_t reset_parser(parser_t *parser) {
   return FALSE;
 }
 
-bool_t stop_parser(parser_t *parser) {
+bool_t stop_parser(parser_t *parser, bool_t abort) {
   if( parser ) {
-    parser->cur.rstatus = XML_StopParser(parser->p, XML_TRUE);
+    XML_Bool how = abort ? XML_FALSE : XML_TRUE;
+    parser->cur.rstatus = XML_StopParser(parser->p, how);
     return (bool_t)(parser->cur.rstatus == XML_STATUS_OK);
   }
   return FALSE;
@@ -81,8 +84,10 @@ bool_t free_parser(parser_t *parser) {
 }
 
 void exec_result(result_t r, parser_t *parser) {
-  if( checkflag(r,PARSER_STOP) ) {
-    stop_parser(parser);
+  if( checkflag(r,PARSER_ABORT) ) {
+    stop_parser(parser, TRUE);
+  } else if( checkflag(r,PARSER_STOP) ) {
+    stop_parser(parser, FALSE);
   } else if( checkflag(r,PARSER_DEFAULT) && parser->callbacks.dfault) {
     XML_DefaultCurrent(parser->p);
   }
@@ -137,6 +142,63 @@ void XMLCALL xml_endcdatahandler(void *userdata) {
   }
 }
 
+void XMLCALL xml_startdoctypedeclhandler(void *userdata,
+					 const XML_Char *doctypeName,
+					 const XML_Char *sysid,
+					 const XML_Char *pubid,
+					 int has_internal_subset) {
+  parser_t *parser = (parser_t *)userdata;
+  if( parser && parser->callbacks.start_doctypedecl ) {
+    exec_result( parser->callbacks.start_doctypedecl(parser->user, doctypeName, sysid, pubid, has_internal_subset), parser );
+  }
+}
+
+void XMLCALL xml_enddoctypedeclhandler(void *userdata) {
+  parser_t *parser = (parser_t *)userdata;
+  if( parser && parser->callbacks.end_doctypedecl ) {
+    exec_result( parser->callbacks.end_doctypedecl(parser->user), parser );
+  }
+}
+
+void XMLCALL xml_entitydeclhandler(void *userdata, 
+				   const XML_Char *entityName, 
+				   int is_parameter_entity, 
+				   const XML_Char *value, 
+				   int value_length, 
+				   const XML_Char *base, 
+				   const XML_Char *systemId,
+				   const XML_Char *publicId, 
+				   const XML_Char *notationName) {
+  parser_t *parser = (parser_t *)userdata;
+  if( parser && parser->callbacks.entitydecl ) {
+    exec_result( parser->callbacks.entitydecl(parser->user, entityName, is_parameter_entity, value, value_length, base, systemId, publicId, notationName), parser );
+  }
+}
+
+/* depending on what was read in the prolog, entities are 
+   returned either ask skipped or as external, but we don't make the 
+   distinction and pass everything to the default parser */
+void XMLCALL xml_skippedentityhandler(void *userdata,
+				      const XML_Char *entityName,
+				      int is_parameter_entity) {
+  parser_t *parser = (parser_t *)userdata;
+  if( parser && parser->callbacks.dfault ) {
+    XML_DefaultCurrent(parser->p);
+  }
+}
+
+int XMLCALL xml_externalentityrefhandler(XML_Parser dummy,
+					  const XML_Char *context,
+					  const XML_Char *base,
+					  const XML_Char *systemId,
+					  const XML_Char *publicId) {
+  parser_t *parser = (parser_t *)dummy;
+  if( parser && parser->callbacks.dfault ) {
+    XML_DefaultCurrent(parser->p);
+  }
+  return XML_STATUS_OK;
+}
+
 void XMLCALL xml_defaulthandler(void *userdata, const XML_Char *s, int len) {
   parser_t *parser = (parser_t *)userdata;
   if( parser && parser->callbacks.dfault ) {
@@ -157,11 +219,35 @@ bool_t reset_handlers_parser(parser_t *parser) {
     XML_SetProcessingInstructionHandler(parser->p, parser->callbacks.pidata ?
 					xml_processinginstructionhandler : NULL);
     XML_SetStartCdataSectionHandler(parser->p, parser->callbacks.start_cdata ?
-			  xml_startcdatahandler : NULL);
-    XML_SetEndCdataSectionHandler(parser->p, parser->callbacks.end_cdata ?
-			  xml_endcdatahandler : NULL);
+				    xml_startcdatahandler : NULL);
+    /* if start_cdata, always set endcdatahandler */
+    XML_SetEndCdataSectionHandler(parser->p, parser->callbacks.start_cdata ?
+				  xml_endcdatahandler : NULL);
     XML_SetDefaultHandler(parser->p, parser->callbacks.dfault ?
-			  xml_defaulthandler : NULL);
+    			  xml_defaulthandler : NULL);
+
+
+    XML_SetStartDoctypeDeclHandler(parser->p, parser->callbacks.start_doctypedecl ?
+				   xml_startdoctypedeclhandler : NULL);
+    /* if start_doctypedecl, always set enddoctypedeclhandler */
+    XML_SetEndDoctypeDeclHandler(parser->p, parser->callbacks.start_doctypedecl ?
+				 xml_enddoctypedeclhandler : NULL);
+    XML_SetEntityDeclHandler(parser->p, parser->callbacks.entitydecl ?
+			     xml_entitydeclhandler : NULL);
+
+    /* what to do about entities: there can be internal and external
+     * entities, which expat treats differently. We want all our
+     * entities to stay unprocessed, otherwise we'll get well formedness
+     * errors. When a handler is called, the raw string is passed to
+     * the default handler (provided it exists). */
+    XML_UseForeignDTD(parser->p, XML_TRUE);
+    XML_SetParamEntityParsing(parser->p, XML_PARAM_ENTITY_PARSING_NEVER);
+    XML_SetExternalEntityRefHandler(parser->p,
+				    xml_externalentityrefhandler);
+    XML_SetExternalEntityRefHandlerArg(parser->p, parser);
+    XML_SetSkippedEntityHandler(parser->p, xml_skippedentityhandler);
+
+
     return TRUE;
   }
   return FALSE;
@@ -176,6 +262,9 @@ bool_t setup_parser(parser_t *parser, callback_t *callbacks) {
     parser->callbacks.comment = callbacks->comment;
     parser->callbacks.start_cdata = callbacks->start_cdata;
     parser->callbacks.end_cdata = callbacks->end_cdata;
+    parser->callbacks.start_doctypedecl = callbacks->start_doctypedecl;
+    parser->callbacks.end_doctypedecl = callbacks->end_doctypedecl;
+    parser->callbacks.entitydecl = callbacks->entitydecl;
     parser->callbacks.dfault = callbacks->dfault;
     return reset_handlers_parser(parser);
   }
@@ -192,6 +281,12 @@ bool_t ok_parser(parser_t *parser) {
   return parser && (parser->cur.rstatus == XML_STATUS_OK);
 }
 
+bool_t aborted_parser(parser_t *parser) {
+  return parser && 
+    (parser->cur.rstatus == XML_STATUS_ERROR) &&
+    (XML_GetErrorCode(parser->p) == XML_ERROR_ABORTED);
+}
+
 bool_t suspended_parser(parser_t *parser) {
   return parser && (parser->cur.pstatus == XML_SUSPENDED);
 }
@@ -201,6 +296,11 @@ bool_t busy_parser(parser_t *parser) {
 }
 
 bool_t audit_parser(parser_t *parser) {
+  /* since a parser is used by nearly all xml-coreutils,
+     and the do_parser() functions call audit_parser(),
+     this is a great place to process signals */
+  process_pending_signal();
+
   if( parser ) {
     parser->cur.pstatus = get_pstatus(parser);
     parser->cur.lineno = XML_GetCurrentLineNumber(parser->p);
@@ -258,3 +358,4 @@ void freebuf_parser(parser_t *parser, byte_t *buf) {
     XML_MemFree(parser->p, buf);
   }
 }
+

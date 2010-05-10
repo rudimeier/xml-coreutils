@@ -1,0 +1,29 @@
+_PURPOSE_
+xml-cat combines multiple XML inputs into a single XML output.
+_INPUT_ 
+<?xml version="1.0"?>
+<elaborate>
+<greeting>
+Hello
+</greeting>
+</elaborate>
+Some ignorable text.
+<?xml version="1.0"?>
+<greeting>
+Hello
+</greeting>
+Some more ignorable text.
+_COMMAND_
+xml-cat
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<root>
+<greeting>
+Hello
+</greeting>
+
+Hello
+</root>
+_END_

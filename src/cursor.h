@@ -21,9 +21,8 @@
 #ifndef CURSOR_H
 #define CURSOR_H
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include "common.h"
+#include <unistd.h>
 
 /* a cursor at final offset o is the smallest sequence of nodes such
  * that the document after o is well formed. A cursor is represented

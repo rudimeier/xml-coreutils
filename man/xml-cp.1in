@@ -1,0 +1,81 @@
+\" t
+.TH XML-CP 1 "xml-coreutils" "Version @VERSION@" ""
+.SH NAME
+xml-cp \- copy nodes from XML files into an XML file.
+.SH SYNOPSIS
+.HP
+.B xml-cp 
+.RI [ OPTION ]...
+.RI [
+.RI [ FILE ]...
+.RI [: XPATH ]...
+.RI ]...
+.IR TARGET [: XPATH ]...
+.SH DESCRIPTION
+.PP
+.B xml-cp
+copies one or more selected nodes from the supplied FILE(s) into the 
+TARGET file. If no FILE is given, then the standard input is read.
+The nodes are chosen according to the common unified command line convention
+described in 
+.BR xml-coreutils (7).
+.P
+The TARGET file is not updated by default, only printed
+to the standard output with the selected nodes inserted at the
+first matching XPATH associated with TARGET. To actually write
+the TARGET file, use the --write-files switch. By
+default, data is inserted at the first matching XPATH of the 
+TARGET. To insert at all matching XPATH(s) of the TARGET, use 
+the --multi switch.
+.P
+Several options exist to choose where the copied data should be 
+inserted in TARGET. The default option is --replace.
+.P
+The precise form of the data being copied depends on the supplied
+XPATH(s). If the XPATH ends with a slash, data is copied excluding
+the immediately surrounding tag. If the XPATH ends without a slash,
+the surrounding tag is also copied. It is best to experiment.
+.SH OPTIONS
+.IP --write-files
+update the TARGET on the filesystem, rather than printing the result
+to the standard output.
+.IP --prepend
+the copied nodes are inserted just before the data of the first matching XPATH in TARGET.
+.IP --replace
+the copied nodes replaces the data of the first matching XPATH in TARGET.
+.IP --append
+the copied nodes are inserted just after the data of the first matching XPATH in TARGET.
+.IP --multi
+the copied nodes are inserted at every node that matches some XPATH associated with TARGET.
+.SH EXIT STATUS
+xml-cp returns 0 on success, or 1 otherwise.
+.SH EXAMPLE
+.P
+Insert matching nodes (incl. children) from all source files as children
+of the first available matching node of target file:
+.EX
+xml-cp --append *.xml ://secret treasure.xml :/treasure/hidden/
+.EE
+Overwrite a placeholder node completely with an XML data fragment:
+.EX
+xml-cp --write-files data.xml ://customer[3]/ template.xml :/invoice/customer/placeholder
+.EE
+.SH AUTHORS
+.P
+.MT laird@lbreyer.com
+Laird A. Breyer
+.ME
+is the original author of this software.
+The source code (GPLv3 or later) for the latest version is available at the
+following locations: 
+.PP
+.na 
+.UR http://www.lbreyer.com/gpl.html
+.UE
+.br
+.UR http://xml-coreutils.sourceforge.net
+.UE
+.ad
+.SH SEE ALSO
+.PP
+.BR xml-coreutils (7)

@@ -33,12 +33,15 @@
 #define DISPLAY_NODECOUNTS       0x08
 
 #define DISPLAY_AUTO_BITS        3
+#define DISPLAY_COLOUR_SCHEMES   2
+
 typedef enum {
   c_default = 0, 
   c_tag, c_att_name, c_att_value, 
   c_chardata, 
   c_comment, 
   c_pi,
+  c_decl,
   c_cdata,
   c_status,
   c_indent,
@@ -50,17 +53,21 @@ typedef enum {
 typedef struct {
   int num_rows;
   int num_cols;
+  int first_col;
   int pivot;
   int max_visible_depth;
+  int colour_scheme;
   flag_t flags;
 } display_t;
 
 typedef enum {
-  nothing = 0, quit, help,
+  nothing = 0, quit, help, refresh,
   forward, backward, 
   left, right,
-  select1, select2,
-  next_sibling, prev_sibling
+  pgdown, pgup, home, end,
+  indent, backindent,
+  next_sibling, prev_sibling,
+  attributes, wordwrap, colours
 } lessui_command_t;
 
 bool_t create_display(display_t *disp);
@@ -71,6 +78,7 @@ bool_t set_display(display_t *disp, long mask);
 bool_t unset_display(display_t *disp, long mask);
 bool_t toggle_display(display_t *disp, long mask);
 bool_t pivot_display(display_t *ui, int delta);
+bool_t shift_display(display_t *ui, int shift);
 
 bool_t open_display(display_t *disp);
 bool_t close_display(display_t *disp);
@@ -79,6 +87,7 @@ bool_t redraw_locator_display(display_t *disp, const cursor_t *cursor);
 /* bool_t redraw_locator_display(display_t *disp, const char_t *rep); */
 
 bool_t do_help_display(display_t *disp);
+bool_t next_colour_scheme_display(display_t *disp);
 
 lessui_command_t getcommand_display(display_t *disp);
 void errormsg_display(display_t *disp, int etype, const char *fmt, ...);

@@ -1,0 +1,40 @@
+_PURPOSE_
+xml-ls attribute flag.
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+	<b bb="M N">
+		<c>
+			<d>O D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K P</h>
+	</b>
+</a>
+_COMMAND_
+xml-ls -a :/a/b
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<root>
+	<b bb="AB">
+		<c/>
+		<h/>
+	</b>
+	<b bb="MN">
+		<c/>
+		<h/>
+	</b>
+</root>
+_END_

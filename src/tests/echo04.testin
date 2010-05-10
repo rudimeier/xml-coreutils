@@ -1,0 +1,19 @@
+_PURPOSE_
+xml-echo a complex path with indentation.
+_INPUT_ 
+_COMMAND_
+xml-echo -e '[x/y]abc[..]def[z]ghi'
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<x>
+	<y>
+		abc
+	</y>
+	def
+	<z>
+		ghi
+	</z>
+</x>
+_END_
