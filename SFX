@@ -1,0 +1,45 @@
+#!/bin/sh
+
+# This is a self extracting archive designed for the GCC compile farm.
+# It deletes several directories and files in the current 
+# working dir, which will then be replaced.
+#
+# We construct the archive by cat SFX xml-coreutils-xxx.tar.gz > xml-coreutils-xxx.sfx.sh
+#
+#
+#
+
+NAME=`basename $0 .sfx.sh`
+W=$PWD
+SKIP=`grep -a -n -m 1 '^__ARCHIVE_FOLLOWS__' $0 | sed 's/:.*//'`
+
+echo ""
+echo "Installing $NAME - please wait...."
+echo ""
+
+rm -rf "$W/$NAME" "$W/bin" "$W/share"
+tail -n +`expr $SKIP + 1` $0 | gunzip -c | tar x
+
+if [ -d "$W/$NAME" ]; then
+
+	cd "$W/$NAME"
+	./configure "--prefix=$W" && make && make check && make install
+	if [ -x "$W/bin/xml-echo" ]; then
+	    echo "..."
+	else
+	    echo "Installation did NOT complete successfully."
+	    exit 1
+	fi
+
+else
+	echo "There was a problem while extracting the archive."
+	exit 1
+fi
+
+echo "Done!"
+ls "$W/bin"
+
+exit 0
+
+# no extra characters allowed after this line!
+__ARCHIVE_FOLLOWS__

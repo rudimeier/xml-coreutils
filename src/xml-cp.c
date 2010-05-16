@@ -319,7 +319,7 @@ int main(int argc, char **argv) {
 	errormsg(E_FATAL, "no target specified (try --help).\n");
       }
 
-      init_signal_handling();
+      init_signal_handling(SIGNALS_DEFAULT);
       init_file_handling();
       init_tempfile_handling();
 

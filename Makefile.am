@@ -17,3 +17,9 @@ dist-hook:
 	for file in $(AUX_DIST); do \
 		cp $$file $(distdir)/$$file; \
 	done
+
+EXTRA_DIST = SFX
+
+sfx:
+	make dist && (cat SFX $(distdir).tar.gz > $(distdir).sfx.sh)
+	test -e $(distdir).sfx.sh && chmod +x $(distdir).sfx.sh

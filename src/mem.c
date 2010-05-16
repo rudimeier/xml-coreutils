@@ -78,6 +78,18 @@ bool_t ensure_bytes_mem(int numbytes,
   return TRUE;
 }
 
+char_t *dup_string(const char_t *begin, const char_t *end) {
+  char_t *q = NULL;
+  if( begin && (end - begin >= 0) ) {
+    q = malloc(end - begin + 1);
+    if( q ) {
+      memcpy(q, begin, end - begin);
+      q[end - begin] = '\0';
+    }
+  }
+  return q;
+}
+
 /* get first delimiter(s) or end pointer. If end is NULL, searches unboundedly
  * can also be used to find delimiters regardless of esc, if you put esc = '\0' 
  *

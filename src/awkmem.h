@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2006 Laird Breyer
+ * Copyright (C) 2010 Laird Breyer
  *  
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,24 +18,37 @@
  * Author:   Laird Breyer <laird@lbreyer.com>
  */
 
-#ifndef MYSIGNAL_H
-#define MYSIGNAL_H
+#ifndef AWKMEM_H
+#define AWKMEM_H
 
 #include "common.h"
 
-/* NEVER CALL THIS FILE signal.h OR YOU'LL BE SORRY :( */
-#include <sys/types.h>
-#include <signal.h>
+/* can't use real pointers if the memory is resizable */
+typedef size_t awkmem_ptr_t;
 
-#ifdef sig_atomic_t
-typedef int sig_atomic_t; /* too bad, but the show must go on... */
-#endif
+typedef struct {
+  byte_t *start;
+  int brk; /* bytes used */
+  size_t size; /* bytes allocated */
+} awkmem_t;
 
-#define SIGNALS_DEFAULT  0x00
-#define SIGNALS_NOCHLD   0x01
+bool_t create_awkmem(awkmem_t *am);
+bool_t free_awkmem(awkmem_t *am);
+bool_t reset_awkmem(awkmem_t *am, awkmem_ptr_t p);
+awkmem_ptr_t sbrk_awkmem(awkmem_t *am, size_t numbytes);
 
-void init_signal_handling(flag_t flags);
-void process_pending_signal();
-void exit_signal_handling();
+typedef char_t *awkstring_t;
+typedef double awknum_t;
+
+typedef struct {
+  awkmem_t rom;
+} awkstrings_t;
+
+bool_t create_awkstrings(awkstrings_t *as);
+bool_t free_awkstrings(awkstrings_t *as);
+
+awkstring_t string_awkstrings(awkstrings_t *as, awkmem_ptr_t p);
+awknum_t number_awkstrings(awkstrings_t *as, awkmem_ptr_t p);
+
 
 #endif

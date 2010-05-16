@@ -52,7 +52,7 @@ while read -r junk; do
     if test "$junk" = "_COMMAND_" ; then
 	break
     fi
-    echo $junk
+    printf "%s\n" "$junk"
 done
 
 cat <<EOF2
@@ -76,7 +76,7 @@ while read -r junk; do
 done
 
 cat <<EOF3 
-cat -E <<EOF_OUTPUT > "\$TMP_PATH/output.expected"
+cat <<EOF_OUTPUT | sed 's/$/$/' > "\$TMP_PATH/output.expected"
 EOF3
 
 # read output 
@@ -84,7 +84,7 @@ while read -r junk; do
     if test "$junk" = "_END_" ; then
 	break
     fi
-    echo "$junk"
+    printf "%s\n" "$junk"
 done
 
 cat <<EOF4
@@ -108,7 +108,7 @@ if test "$EXITCODE" != "0" ; then
   exit 0
 fi
 
-cat -E "\$TMP_PATH/output" > "\$TMP_PATH/outputE"
+cat "\$TMP_PATH/output" | sed 's/$/$/' > "\$TMP_PATH/outputE"
 
 diff "\$TMP_PATH/output.expected" "\$TMP_PATH/outputE" > "\$TMP_PATH/output.diff"
 

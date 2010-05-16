@@ -1,9 +1,9 @@
 AC_PREREQ(2.59)
-AC_INIT([xml-coreutils],[0.8],[laird@lbreyer.com])
+AC_INIT([xml-coreutils],[0.8a],[laird@lbreyer.com])
 AC_CONFIG_AUX_DIR(config)
 AC_CANONICAL_SYSTEM
 AC_GNU_SOURCE
-AM_INIT_AUTOMAKE([xml-coreutils],[0.8],[laird@lbreyer.com])
+AM_INIT_AUTOMAKE([xml-coreutils],[0.8a],[laird@lbreyer.com])
 AM_CONFIG_HEADER(src/config.h)
 
 ## Checks for programs
@@ -15,11 +15,13 @@ AC_PROG_YACC
 ## Checks for libraries.
 AC_CHECK_LIB([m],[log])
 AC_CHECK_LIB([expat],[XML_ParseBuffer],,[AC_MSG_ERROR([Missing libexpat])])
+# (these two go together in this order)
+AC_CHECK_LIB([ncurses],[initscr])
 AC_CHECK_LIB([slang],[SLsmg_init_smg],,[AC_MSG_ERROR([Missing libslang2])])
 
 ## Checks for header files.
 AC_HEADER_STDC
-AC_CHECK_HEADERS([features.h langinfo.h unistd.h sys/mman.h mman.h netinet/in.h])
+AC_CHECK_HEADERS([features.h langinfo.h unistd.h sys/types.h sys/mman.h mman.h])
 AC_CHECK_HEADERS([wchar.h wctype.h],,
 [
 	AC_MSG_WARN([No wide character headers, disabling full internationalization.])

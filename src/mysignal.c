@@ -22,7 +22,7 @@
 #include "myerror.h"
 
 #include <string.h>
-#include <wait.h>
+#include <sys/wait.h>
 
 typedef struct {
   const char *tempfile;
@@ -49,7 +49,7 @@ void sigsegv(int signum) {
 }
 
 /* intercepts typical termination signals and tries to do the right thing */
-void init_signal_handling() {
+void init_signal_handling(flag_t flags) {
 #if defined HAVE_SIGACTION
 
   memset(&act, 0, sizeof(struct sigaction));
@@ -64,7 +64,9 @@ void init_signal_handling() {
   sigaddset(&act.sa_mask,SIGTERM);
   sigaddset(&act.sa_mask,SIGPIPE);
   sigaddset(&act.sa_mask,SIGALRM);
-  sigaddset(&act.sa_mask,SIGCHLD);
+  if( !checkflag(flags,SIGNALS_NOCHLD) ) {
+    sigaddset(&act.sa_mask,SIGCHLD);
+  }
   act.sa_flags = 0;
 
   sigaction(SIGHUP, &act, NULL);
@@ -73,7 +75,9 @@ void init_signal_handling() {
   sigaction(SIGTERM, &act, NULL);
   sigaction(SIGPIPE, &act, NULL);
   sigaction(SIGALRM, &act, NULL);
-  sigaction(SIGCHLD, &act, NULL);
+  if( !checkflag(flags,SIGNALS_NOCHLD) ) {
+    sigaction(SIGCHLD, &act, NULL);
+  }
 
   act.sa_handler = sigsegv;
   sigemptyset(&act.sa_mask);

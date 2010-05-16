@@ -30,6 +30,8 @@ bool_t create_mem(void *pptr, size_t *nmemb, size_t size, size_t minmemb);
 bool_t free_mem(void *pptr, size_t *nmemb);
 bool_t ensure_bytes_mem(int numbytes, void *pptr, size_t *nmemb, size_t size);
 
+char_t *dup_string(const char_t *begin, const char_t *end);
+
 /* Below are a few search functions for simple parsing of strings which are
  * not (necessarily) null terminated. 
  *

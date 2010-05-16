@@ -345,7 +345,8 @@ byte_t *getbuf_parser(parser_t *parser, size_t n) {
     /* parser will free this automatically */
     buf = (byte_t *)XML_GetBuffer(parser->p, n);
     if( !buf ) {
-      errormsg(E_ERROR, "can't allocate read buffer (%d bytes)\n", n);
+      errormsg(E_ERROR, "can't allocate read buffer (%lu bytes)\n", 
+	       (unsigned long)n);
       return (byte_t *)NULL;
     }
     return buf;

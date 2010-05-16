@@ -1,3 +1,7 @@
+xml-coreutils 0.8a:
+	* shell scripting portability changes
+	* replace strndup calls in rcm.c by dup_string from mem.c
+	* portability changes (thanks Douglas Held)
 xml-coreutils 0.8:
 	* new filelist object to process command line args uniformly.
 	* man pages for all the commands (rudimentary)

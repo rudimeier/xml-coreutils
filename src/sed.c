@@ -79,7 +79,7 @@ const char_t *compile_sedad(sedad_t *sa, const char_t *begin, const char_t *end)
     if( xml_isdigit(*begin) ) {
       r = compile_range_sedad(sa, begin, end);
       if( !r ) {
-	errormsg(E_FATAL, "bad address %.*s\n", end - begin, begin);
+	errormsg(E_FATAL, "bad address %.*s\n", (int)(end - begin), begin);
       }
     } else {
       r = begin;

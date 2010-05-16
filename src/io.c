@@ -30,7 +30,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
-#include <wait.h>
+#include <sys/wait.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -206,8 +206,8 @@ bool_t write_file(int fd, const byte_t *buf, size_t buflen) {
     n = write(fd, buf + written, buflen - written);
     if( n == -1 ) {
       errormsg(E_ERROR, 
-	       "couldn't write data to file descriptor %d (%d bytes)\n", 
-	       fd, buflen - written);
+	       "couldn't write data to file descriptor %d (%lu bytes)\n", 
+	       fd, (unsigned long)(buflen - written));
       return FALSE;
     } 
     written += n;
@@ -217,24 +217,38 @@ bool_t write_file(int fd, const byte_t *buf, size_t buflen) {
 
 /* return TRUE on zero status */
 bool_t exec_cmdline(const char *filename, const char **argv) {
-  pid_t pid;
+  pid_t pid, wpid;
   int status;
 
   pid = fork();
-  if( (pid == -1) ||
-      ((pid == 0) && (-1 == execvp(filename, (char **)argv))) ) {
+  if( pid == -1 ) {
+    errormsg(E_WARNING, "failed to fork\n"); 
+    return FALSE;
+  } else if( (pid == 0) && (-1 == execvp(filename, (char **)argv)) ) {
     errormsg(E_WARNING, "failed to exec %s: %s\n", 
 	     filename, strerror(errno));
-    return FALSE;
+    _exit(EXIT_FAILURE);
   }
-  return ( (pid == waitpid(pid, &status, 0)) && (status == 0) );
+
+  /* IMPORTANT: do not handle SIGCHLD during the wait */
+  wpid = waitpid(pid, &status, 0);
+  if( wpid == 0 ) {
+    return TRUE; 
+  }
+  if( (wpid == 0) || 
+      ((wpid == pid) && (WIFEXITED(status) && (WEXITSTATUS(status) == 0))) ) {
+    return TRUE;
+  }
+  errormsg(E_WARNING, 
+	     "during exec %s: %s\n", filename, strerror(errno));
+  return FALSE;
 }
 
 
 
 bool_t reaper(pid_t pid) {
   pid_t p;
-  kill(pid, SIGTERM); /* this is intercepted in signal.c */
+  kill(pid, SIGTERM); /* this is intercepted in mysignal.c */
   p = waitpid(pid, NULL, 0);
   return (p == 0); 
 }

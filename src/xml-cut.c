@@ -467,7 +467,7 @@ int main(int argc, char **argv) {
     }
     sanity_check(&pinfo);
 
-    init_signal_handling();
+    init_signal_handling(SIGNALS_DEFAULT);
     init_file_handling();
 
     output_wrapper_start(&pinfo);

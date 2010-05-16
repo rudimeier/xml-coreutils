@@ -9,7 +9,7 @@ _INPUT_
 123
 </abc:def>
 _COMMAND_
-true; echo -n "`cat "$TMP_PATH/input" | xml-unecho --xml-sed`\n" 
+true; cat "$TMP_PATH/input" | xml-unecho --xml-sed
 _EXITCODE_
 0
 _OUTPUT_

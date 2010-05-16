@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2006 Laird Breyer
+ * Copyright (C) 2010 Laird Breyer
  *  
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,24 +18,40 @@
  * Author:   Laird Breyer <laird@lbreyer.com>
  */
 
-#ifndef MYSIGNAL_H
-#define MYSIGNAL_H
+#include "awkast.h"
 
-#include "common.h"
+bool_t create_awkast(awkast_t *ast) {
+  if( ast ) {
+    return create_awkmem(&ast->rom);
+  }
+  return FALSE;
+}
 
-/* NEVER CALL THIS FILE signal.h OR YOU'LL BE SORRY :( */
-#include <sys/types.h>
-#include <signal.h>
+bool_t free_awkast(awkast_t *ast) {
+  if( ast ) {
+    return free_awkmem(&ast->rom);
+  }
+  return FALSE;
+}
 
-#ifdef sig_atomic_t
-typedef int sig_atomic_t; /* too bad, but the show must go on... */
-#endif
+bool_t clear_awkast(awkast_t *ast) {
+  if( ast ) {
+    sbrk_awkmem(&ast->rom, 0);
+    return TRUE;
+  }
+  return FALSE;
+}
 
-#define SIGNALS_DEFAULT  0x00
-#define SIGNALS_NOCHLD   0x01
+awkmem_ptr_t mknode_awkast(awkast_t *ast, astnode_type_t id) {
+  awkmem_ptr_t p = (awkmem_ptr_t)-1;
+  astnode_t *n;
+  if( ast ) {
+    p = sbrk_awkmem(&ast->rom, sizeof(astnode_t));
+    if( p != (awkmem_ptr_t)-1 ) {
+      n = (astnode_t *)(ast->rom.start + p);
+      n->id = id;
+    }
+  }
+  return p;
+}
 
-void init_signal_handling(flag_t flags);
-void process_pending_signal();
-void exit_signal_handling();
-
-#endif

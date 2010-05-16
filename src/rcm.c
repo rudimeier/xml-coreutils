@@ -19,6 +19,7 @@
  */
 
 #include "common.h"
+#include "mem.h"
 #include "rcm.h"
 #include "stdprint.h"
 #include "stdout.h"
@@ -271,14 +272,14 @@ const char_t **try_write_attribute(rcm_t *rcm, stdparserinfo_t *sp,
 	  (0 == match_no_att_no_pred_xpath(xa->path, xa->begin, path)) ) {
 	if( false_and_setflag(&rcm->flags,RCM_CP_OKINSERT) ) {
 	  if( dump_cstring_tempcollect(&rcm->av, rcm->insert) ) {
-	    q = strndup(xa->begin + 1, xa->end - xa->begin - 1);
+	    q = dup_string(xa->begin + 1, xa->end);
 	    add_stringlist(&rcm->sl, q, STRINGLIST_FREE);
-	    q = strndup(p_cstring(&rcm->av), buflen_cstring(&rcm->av));
+	    q = dup_string(begin_cstring(&rcm->av), end_cstring(&rcm->av));
 	    add_stringlist(&rcm->sl, q, STRINGLIST_FREE);
 	  } else {
 	    errormsg(E_WARNING, 
 		     "source data could not be inserted in attribute %.*s\n",
-		     xa->end - xa->begin, xa->begin);
+		     (int)(xa->end - xa->begin), xa->begin);
 	    /* old attribute value will be used */
 	  }
 	  if( checkflag(rcm->flags,RCM_CP_MULTI) ) {

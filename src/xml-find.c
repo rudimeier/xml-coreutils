@@ -827,7 +827,7 @@ int main(int argc, char **argv) {
       set_option_find(op, optarg);
     }
 
-    init_signal_handling();
+    init_signal_handling(SIGNALS_NOCHLD); /* for exec_cmdline */
     init_file_handling();
     init_tempfile_handling();
 

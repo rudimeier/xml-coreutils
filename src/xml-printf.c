@@ -663,7 +663,7 @@ int main(int argc, char **argv) {
     set_option_printf(op, optarg);
   }
 
-  init_signal_handling();
+  init_signal_handling(SIGNALS_DEFAULT); 
   init_file_handling();
 
   if( create_parserinfo_printf(&pinfo) ) {

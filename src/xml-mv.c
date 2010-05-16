@@ -402,7 +402,7 @@ int main(int argc, char **argv) {
       set_option_mv(op, optarg, &pinfo);
     }
 
-    init_signal_handling();
+    init_signal_handling(SIGNALS_DEFAULT);
     init_file_handling();
     init_tempfile_handling();
     init_rollback_handling();

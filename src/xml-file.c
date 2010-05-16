@@ -301,7 +301,7 @@ int main(int argc, char **argv) {
 
     pinfo.llf = length_longest_filename(argv + optind);
 
-    init_signal_handling();
+    init_signal_handling(SIGNALS_DEFAULT);
     init_file_handling();
 
     open_stdout();

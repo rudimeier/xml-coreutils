@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2006 Laird Breyer
+ * Copyright (C) 2010 Laird Breyer
  *  
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,24 +18,29 @@
  * Author:   Laird Breyer <laird@lbreyer.com>
  */
 
-#ifndef MYSIGNAL_H
-#define MYSIGNAL_H
+#ifndef AWKAST_H
+#define AWKAST_H
 
 #include "common.h"
+#include "awkmem.h"
 
-/* NEVER CALL THIS FILE signal.h OR YOU'LL BE SORRY :( */
-#include <sys/types.h>
-#include <signal.h>
+typedef enum {
+  a_none
+} astnode_type_t;
 
-#ifdef sig_atomic_t
-typedef int sig_atomic_t; /* too bad, but the show must go on... */
-#endif
+typedef struct {
+  astnode_type_t id;
+} astnode_t;
 
-#define SIGNALS_DEFAULT  0x00
-#define SIGNALS_NOCHLD   0x01
+typedef struct {
+  awkmem_t rom;
+  awkmem_ptr_t root;
+} awkast_t;
 
-void init_signal_handling(flag_t flags);
-void process_pending_signal();
-void exit_signal_handling();
+bool_t create_awkast(awkast_t *ast);
+bool_t free_awkast(awkast_t *ast);
+bool_t clear_awkast(awkast_t *ast);
+
+awkmem_ptr_t mknode_awkast(awkast_t *ast, astnode_type_t id);
 
 #endif
