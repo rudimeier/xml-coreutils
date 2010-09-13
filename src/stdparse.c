@@ -260,6 +260,9 @@ bool_t stdparse2(int n, cstringlst_t files, cstringlst_t *xpaths,
 
       if( create_parser(&parser, pinfo) ) {
 
+	/* force zero memory: prevents bugs when callback_t is extended */
+	memset(&cb, 0, sizeof(callback_t));
+
 	cb.start_tag = std_start_tag; /* always needed */
 	cb.end_tag = std_end_tag; /* always needed */
 

@@ -129,8 +129,8 @@ result_t lf_end_tag(void *user, const char_t *name) {
     /* pre tag below */
 
     r0 = ( checkflag(pinfo->setup.flags,LFP_ALWAYS_CHARDATA) &&
-	   false_and_setflag(&pinfo->reserved,LFP_R_CHARDATA) ?
-	   lf_chardata(user, "", 0) : 0 );
+    	   false_and_setflag(&pinfo->reserved,LFP_R_CHARDATA) ?
+    	   lf_chardata(user, "", 0) : 0 );
 
     pinfo->line.typ = ((pinfo->depth == 1) ? lt_last : lt_middle);
     activate_node_stdselect(&pinfo->sel, pinfo->depth, &pinfo->cp);
@@ -139,7 +139,7 @@ result_t lf_end_tag(void *user, const char_t *name) {
 	     checkflag(pinfo->reserved,LFP_R_EMPTY) );
 
     r1 = ( pinfo->setup.cb.leaf_node && !skip &&
-	   checkflag(pinfo->setup.flags,LFP_PRE_CLOSE) ) ?
+    	   checkflag(pinfo->setup.flags,LFP_PRE_CLOSE) ) ?
       pinfo->setup.cb.leaf_node(user, &pinfo->ue) : PARSER_OK;
 
     clearflag(&pinfo->reserved,LFP_R_CHARDATA);
@@ -154,14 +154,14 @@ result_t lf_end_tag(void *user, const char_t *name) {
 
     if( pinfo->depth == 0 ) {
 
-      r2 = ( pinfo->setup.cb.footwrap ? 
-	     pinfo->setup.cb.footwrap(user, name) : 0 );
+      r2 = ( pinfo->setup.cb.footwrap ?
+      	     pinfo->setup.cb.footwrap(user, name) : 0 );
 
     } else {
 
-      r2 = ( pinfo->setup.cb.leaf_node && 
-	     checkflag(pinfo->setup.flags,LFP_POST_CLOSE) ) ?
-	pinfo->setup.cb.leaf_node(user, &pinfo->ue) : PARSER_OK;
+      r2 = ( pinfo->setup.cb.leaf_node &&
+      	     checkflag(pinfo->setup.flags,LFP_POST_CLOSE) ) ?
+      	pinfo->setup.cb.leaf_node(user, &pinfo->ue) : PARSER_OK;
 
     }
 
@@ -273,6 +273,9 @@ bool_t leafparse(const char *file, cstringlst_t xpaths, leafparserinfo_t *pinfo)
   if( file && pinfo ) {
     if( reset_leafparserinfo(pinfo) ) {
       if( create_parser(&parser, pinfo) ) {
+
+	/* force zero memory: prevents bugs when callback_t is extended */
+	memset(&cb, 0, sizeof(callback_t));
 
 	cb.start_tag = lf_start_tag; /* always needed */
 	cb.end_tag = lf_end_tag; /* always needed */

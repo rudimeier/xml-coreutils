@@ -24,7 +24,7 @@
 #include "common.h"
 #include "myerror.h"
 #include "objstack.h"
-
+#include "symbols.h"
 
 #include "awkmem.h"
 
@@ -37,35 +37,25 @@ bool_t create_codeblock(codeblock_t *bl);
 bool_t free_codeblock(codeblock_t *bl);
 bool_t set_pattern_codeblock(codeblock_t *bl, const char *pattern);
 
-typedef enum {
-  a_null, a_expr
-} awkast_type_t;
-
-typedef struct awkast {
-  awkast_type_t typ;
-  union {
-    int integer;
-  } val;
-  struct awkast *left;
-  struct awkast *right;
-} awkast_t;
-
-awkast_t *create_awkast(awkast_type_t t);
-bool_t free_awkast(awkast_t *ast);
-
 
 typedef struct {
   int ic; /* instruction counter */
   flag_t flags;
   
-  awkast_t *ast;
-  awkstrings_t constants;
+  /* awkast_t *ast; */
+  symbols_t sym;
+  objstack_t symtable;
+
+  awkconstmgr_t constants;
   objstack_t codeblocks;
 } awkvm_t;
 
 bool_t create_awkvm(awkvm_t *vm);
 bool_t free_awkvm(awkvm_t *vm);
 
+symbol_t getid_awkvm(awkvm_t *vm,  const char_t *begin, const char_t *end);
+bool_t putsym_awkvm(awkvm_t *vm, symbol_t id);
+symrec_t *getsym_awkvm(awkvm_t *vm, symbol_t id);
 
 /* see awkp.y */
 bool_t parse_string_awkvm(awkvm_t *vm, const char_t *begin, const char_t *end);

@@ -43,4 +43,7 @@ bool_t peek_objstack(objstack_t *os, byte_t *obj, size_t objsize);
 bool_t peekn_objstack(objstack_t *os, int n, byte_t *obj, size_t objsize);
 bool_t pop_objstack(objstack_t *os, size_t objsize);
 
+/* access like an array */
+void *get_objstack(objstack_t *os, int n, size_t objsize);
+
 #endif

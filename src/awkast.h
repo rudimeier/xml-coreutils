@@ -23,24 +23,32 @@
 
 #include "common.h"
 #include "awkmem.h"
+#include "symbols.h"
 
 typedef enum {
-  a_none
-} astnode_type_t;
+  aNULL = 0, aDUMMY
+} awkast_node_type_t;
 
-typedef struct {
-  astnode_type_t id;
-} astnode_t;
+typedef union {
+  awkmem_ptr_t ptr;
+  symbol_t sym;
+} awkast_variant_t;
+
+typedef struct awkast {
+  awkast_node_type_t id;
+  awkast_variant_t chi; /* child ptr */
+  awkast_variant_t sib; /* sibling ptr */
+} awkast_node_t;
 
 typedef struct {
   awkmem_t rom;
-  awkmem_ptr_t root;
 } awkast_t;
 
 bool_t create_awkast(awkast_t *ast);
 bool_t free_awkast(awkast_t *ast);
 bool_t clear_awkast(awkast_t *ast);
+awkmem_ptr_t mknode_awkast(awkast_t *ast, awkast_node_type_t id,
+			   awkast_variant_t chi, awkast_variant_t sib);
 
-awkmem_ptr_t mknode_awkast(awkast_t *ast, astnode_type_t id);
 
 #endif

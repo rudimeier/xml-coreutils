@@ -1,9 +1,9 @@
 AC_PREREQ(2.59)
-AC_INIT([xml-coreutils],[0.8a],[laird@lbreyer.com])
+AC_INIT([xml-coreutils],[0.8b],[laird@lbreyer.com])
 AC_CONFIG_AUX_DIR(config)
 AC_CANONICAL_SYSTEM
 AC_GNU_SOURCE
-AM_INIT_AUTOMAKE([xml-coreutils],[0.8a],[laird@lbreyer.com])
+AM_INIT_AUTOMAKE([xml-coreutils],[0.8b],[laird@lbreyer.com])
 AM_CONFIG_HEADER(src/config.h)
 
 ## Checks for programs

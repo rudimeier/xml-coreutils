@@ -45,7 +45,7 @@ void my_sa_handler(int signum) {
 }
 
 void sigsegv(int signum) {
-  errormsg(E_FATAL, "segmentation fault.\n");
+   errormsg(E_FATAL, "segmentation fault.\n");
 }
 
 /* intercepts typical termination signals and tries to do the right thing */

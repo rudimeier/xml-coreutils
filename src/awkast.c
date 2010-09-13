@@ -42,14 +42,17 @@ bool_t clear_awkast(awkast_t *ast) {
   return FALSE;
 }
 
-awkmem_ptr_t mknode_awkast(awkast_t *ast, astnode_type_t id) {
+awkmem_ptr_t mknode_awkast(awkast_t *ast, awkast_node_type_t id,
+			   awkast_variant_t chi, awkast_variant_t sib) {
   awkmem_ptr_t p = (awkmem_ptr_t)-1;
-  astnode_t *n;
+  awkast_node_t *n;
   if( ast ) {
-    p = sbrk_awkmem(&ast->rom, sizeof(astnode_t));
+    p = sbrk_awkmem(&ast->rom, sizeof(awkast_node_t));
     if( p != (awkmem_ptr_t)-1 ) {
-      n = (astnode_t *)(ast->rom.start + p);
+      n = (awkast_node_t *)(ast->rom.start + p);
       n->id = id;
+      n->chi = chi;
+      n->sib = sib;
     }
   }
   return p;

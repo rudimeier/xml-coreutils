@@ -61,44 +61,65 @@ awkmem_ptr_t sbrk_awkmem(awkmem_t *am, size_t numbytes) {
   return (awkmem_ptr_t)(-1);
 }
 
+void *get_awkmem(awkmem_t *am, awkmem_ptr_t p) {
+  return (am && (p >= 0) && (p <= am->brk)) ? (am + p) : NULL;
+}
+
 /***/
 
-bool_t create_awkstrings(awkstrings_t *as) {
-  if( as ) {
-    return create_awkmem(&as->rom);
+bool_t create_awkconstmgr(awkconstmgr_t *ac) {
+  if( ac ) {
+    return create_awkmem(&ac->rom);
   }
   return FALSE;
 }
 
-bool_t free_awkstrings(awkstrings_t *as) {
-  if( as ) {
-    return free_awkmem(&as->rom);
+bool_t free_awkconstmgr(awkconstmgr_t *ac) {
+  if( ac ) {
+    return free_awkmem(&ac->rom);
   }
   return FALSE;
+}
+
+awkstring_t get_string_awkconstmgr(awkconstmgr_t *ac, awkmem_ptr_t p) {
+  awkconst_t *c = (awkconst_t *)get_awkmem(&ac->rom, p);
+  return c ? &c->strval : NULL;
+}
+
+awknum_t get_number_awkconstmgr(awkconstmgr_t *ac, awkmem_ptr_t p) {
+  awkconst_t *c = (awkconst_t *)get_awkmem(&ac->rom, p);
+  return c ? c->numval : NAN;
 }
 
 /* insert both a string and its floating point value into as->rom */
-awkmem_ptr_t insert_awkstrings(awkstrings_t *as, const char_t *begin, const char_t *end) {
+awkmem_ptr_t append_awkconstmgr(awkconstmgr_t *ac, const char_t *begin, const char_t *end) {
   awkmem_ptr_t p = (awkmem_ptr_t)(-1);
-  awknum_t v;
-  if( as && begin && (end >= begin) ) {
-    p = sbrk_awkmem(&as->rom, end - begin + 1 + sizeof(awknum_t));
+  awkconst_t *c;
+  if( ac && begin && (end >= begin) ) {
+    p = sbrk_awkmem(&ac->rom, end - begin + sizeof(awkconst_t));
     if( p != (awkmem_ptr_t)(-1) ) {
-      memcpy(as->rom.start + p + sizeof(awknum_t), begin, end - begin);
-      as->rom.start[p + sizeof(awknum_t) + end - begin] = '\0';
-      v = atof((char *)(as->rom.start + p + sizeof(awknum_t)));
-      memcpy(as->rom.start + p, &v, sizeof(awknum_t));
+      c = (awkconst_t *)(ac->rom.start + p);
+      memcpy(&c->strval, begin, end - begin);
+      ac->rom.start[p + end - begin + sizeof(awkconst_t)] = '\0';
+      c->numval = atof(&c->strval);
     }
   }
   return p;
 }
 
-awkstring_t string_awkstrings(awkstrings_t *as, awkmem_ptr_t p) {
-  return (as && (p < as->rom.size)) ? 
-    (awkstring_t)(as->rom.start + p + sizeof(awknum_t)) : NULL;
+/***/
+
+bool_t create_awkvar(awkvar_t *v) {
+  if( v ) {
+    memset(v, 0, sizeof(awkvar_t));
+  }
+  return FALSE;
 }
 
-awknum_t number_awkstrings(awkstrings_t *as, awkmem_ptr_t p) {
-  return (as && (p < as->rom.size)) ? *(awknum_t *)(as->rom.start + p) : NAN;
+bool_t free_awkvar(awkvar_t *v) {
+  if( v ) {
+    memset(v, 0, sizeof(awkvar_t));
+  }
+  return FALSE;
 }
 

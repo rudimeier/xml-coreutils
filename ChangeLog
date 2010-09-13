@@ -1,3 +1,6 @@
+xml-coreutils 0.8b:
+	* fix initialization bug in leafparse()
+	* memory overwrite in write_escape_cstring()
 xml-coreutils 0.8a:
 	* shell scripting portability changes
 	* replace strndup calls in rcm.c by dup_string from mem.c

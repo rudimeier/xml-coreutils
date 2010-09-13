@@ -294,7 +294,7 @@ const char_t *write_escape_cstring(cstring_t *cs, const char_t *p, const char_t 
   char_t *r;
   if( buf && check_range_cstring(cs,p) ) {
     offset = p - begin_cstring(cs);
-    if( ensure_cstring(cs, offset + buflen + 1) ) {
+    if( ensure_cstring(cs, offset + 2 * buflen + 1) ) {
       r = p_cstring(cs) + offset; /* begin could have changed */
 
       while( buflen-- > 0 ) {

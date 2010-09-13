@@ -24,7 +24,6 @@
 #include "parser.h"
 #include <string.h>
 
-
 extern char *inputfile;
 
 bool_t create_parser(parser_t *parser, void *ud) {
@@ -356,6 +355,7 @@ byte_t *getbuf_parser(parser_t *parser, size_t n) {
 
 void freebuf_parser(parser_t *parser, byte_t *buf) {
   if( parser ) {
+    /* used in conjunction with XML_MemAlloc, not needed by getbuf_parser */
     XML_MemFree(parser->p, buf);
   }
 }

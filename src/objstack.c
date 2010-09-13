@@ -53,6 +53,7 @@ bool_t is_empty_objstack(objstack_t *os) {
   return os && (os->top == 0);
 }
 
+/* if obj is NULL, initializes to zero, else copies obj */
 bool_t push_objstack(objstack_t *os, const byte_t *obj, size_t objsize) {
   byte_t *q;
   if( os && (objsize == os->size) ) {
@@ -61,7 +62,11 @@ bool_t push_objstack(objstack_t *os, const byte_t *obj, size_t objsize) {
     }
     if( os->top < os->nmemb ) {
       q = os->stack + objsize * os->top;
-      memcpy(q, obj, objsize);
+      if( obj ) { 
+	memcpy(q, obj, objsize); 
+      } else {
+	memset(q, 0, objsize);
+      }
       os->top++;
       return TRUE;
     }
@@ -112,3 +117,10 @@ bool_t pop_objstack(objstack_t *os, size_t objsize) {
 /*   } */
 /*   printf("]\n"); */
 /* } */
+
+void *get_objstack(objstack_t *os, int n, size_t objsize) {
+  if( os && (objsize == os->size) && (n >= 0) && (n < os->top) ) {
+    return (void *)(os->stack + objsize * n);
+  }
+  return NULL;
+}
