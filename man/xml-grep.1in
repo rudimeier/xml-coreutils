@@ -14,9 +14,11 @@ xml-grep \- print matching fragments as an XML file on the standard output.
 .SH DESCRIPTION
 .P
 .B xml-grep
-searches the input FILE(s) for text nodes and attribute values (not tag names)
+searches the input FILE(s) for text nodes and attribute values 
 described by the regular expression PATTERN, and prints
-the matching fragments to the standard output, as an XML file.
+the matching fragments to the standard output, as an XML file. If
+an XPATH is specified, then the search is filtered for matching tags.
+See the examples below.
 .SH OPTIONS
 .IP --invert-match
 print data NOT matching PATTERN.
@@ -29,17 +31,21 @@ always print the whole subtree context of a match.
 .IP --attributes
 print only matching attributes.
 .SH EXIT STATUS
-xml-grep returns 0 on success, or 1 otherwise.
+xml-grep returns 0 if a pattern match was successful, 1 if no patterns were matched, and 2 if some error occurred.
 .SH EXAMPLE
 .P
-Print nodes (incl. children) which contain a pattern, without regard for case:
+Print text nodes (incl. children) which contain a pattern, without regard for case:
 .EX
 xml-grep -i 'wi.*ard' rincewind.xml 
 .EE
 .P
-Show nodes which do not match a pattern:
+Show text nodes which do not match a pattern:
 .EX
 xml-grep -v '../02/2009' logfile.xml
+.EE
+Print the first subtree whose tag name matches an XPATH:
+.EX
+xml-cat island.xml | xml-grep --subtree '.*' ://secret[1]
 .EE
 .SH AUTHORS
 .P

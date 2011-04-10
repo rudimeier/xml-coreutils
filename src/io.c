@@ -232,8 +232,8 @@ bool_t exec_cmdline(const char *filename, const char **argv) {
 
   /* IMPORTANT: do not handle SIGCHLD during the wait */
   wpid = waitpid(pid, &status, 0);
-  if( wpid == 0 ) {
-    return TRUE; 
+  if( wpid == pid ) {
+    return TRUE;
   }
   if( (wpid == 0) || 
       ((wpid == pid) && (WIFEXITED(status) && (WEXITSTATUS(status) == 0))) ) {

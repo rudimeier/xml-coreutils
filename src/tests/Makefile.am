@@ -19,14 +19,15 @@ ECHO = echo01.sh echo02.sh echo03.sh echo04.sh \
 FILE = file01.sh
 
 FIND = find01.sh find02.sh find03.sh find04.sh \
-	find05.sh find06.sh find07.sh find08.sh
+	find05.sh find06.sh find07.sh find08.sh \
+	find09.sh
 
 FIXTAGS = fixtags01.sh fixtags02.sh fixtags03.sh fixtags04.sh
 
 FMT = fmt01.sh
 
 GREP = grep01.sh grep02.sh grep03.sh grep04.sh \
-	grep05.sh grep06.sh
+	grep05.sh grep06.sh grep07.sh
 
 HEAD = head01.sh head02.sh
 
@@ -79,10 +80,11 @@ EXTRA_DIST = compile_test.sh \
 	file01.testin \
 	find01.testin find02.testin find03.testin find04.testin \
 	find05.testin find06.testin find07.testin find08.testin \
+	find09.testin \
 	fixtags01.testin fixtags02.testin fixtags03.testin fixtags04.testin \
 	fmt01.testin \
 	grep01.testin grep02.testin grep03.testin grep04.testin \
-	grep05.testin grep06.testin \
+	grep05.testin grep06.testin grep07.testin \
 	head01.testin head02.testin \
 	ls01.testin ls02.testin \
 	mv01.testin mv02.testin mv03.testin \

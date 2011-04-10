@@ -1,0 +1,11 @@
+_PURPOSE_
+xml-grep returns 0 on match success, 1 on match failure, 2 on error
+_INPUT_ 
+<root><a>hello</a></root>
+_COMMAND_
+( (cat > infile) && (xml-grep 'hello' infile > /dev/null && echo "good") && (xml-grep 'goodbye' infile > /dev/null && echo "bad") )
+_EXITCODE_
+1
+_OUTPUT_
+good
+_END_

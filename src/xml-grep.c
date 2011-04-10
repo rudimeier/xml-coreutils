@@ -71,7 +71,13 @@ flag_t u_options = 0;
  * and the nature of a string pattern match.
  */
 
+
 #include <stdio.h>
+
+/* EXIT_SUCCESS indicates match success,
+   EXIT_FAILURE indicates match failure,
+   EXIT_ERROR indicates error */
+#define EXIT_ERROR 2
 
 typedef enum { t_undefined, t_start_tag, t_end_tag, t_chardata } token_t;
 
@@ -120,7 +126,7 @@ typedef struct {
 #define GREP_FLAG_EXTEND     0x10
 #define GREP_FLAG_SUBTREE    0x20
 #define GREP_FLAG_ATTRIBUTES 0x40
-
+#define GREP_FLAG_MATCHFOUND 0x80
 
 #define ACTION_NONE       0x00
 #define ACTION_COMMIT     0x01
@@ -291,6 +297,7 @@ bool_t commit(parserinfo_grep_t *pinfo) {
     write_stdout_tempcollect(&pinfo->tape);
     reset_tempcollect(&pinfo->tape);
     clear_objstack(&pinfo->savepoints);
+    setflag(&pinfo->flags, GREP_FLAG_MATCHFOUND);
     return TRUE;
   }
   return FALSE;
@@ -609,7 +616,7 @@ void output_wrapper_end(parserinfo_grep_t *pinfo) {
 int main(int argc, char **argv) {
   signed char op;
   parserinfo_grep_t pinfo;
-  int retval = EXIT_SUCCESS;
+  int retval = EXIT_FAILURE;
   flag_t sflags;
   stringlist_t patterns;
   int i;
@@ -645,7 +652,7 @@ int main(int argc, char **argv) {
 	((patterns.num == 0) && !argv[optind]) ) {
 
       puts(GREP_USAGE);
-      retval = EXIT_FAILURE;
+      retval = EXIT_ERROR;
 
     } else {
 
@@ -661,13 +668,16 @@ int main(int argc, char **argv) {
       for(i = 0; i < patterns.num; i++) {
 	if( !push_smatcher(&pinfo.sm, 
 			   get_stringlist(&patterns, i), sflags) ) {
-	  retval = EXIT_FAILURE;
+	  retval = EXIT_ERROR;
 	}
       }
 
       output_wrapper_start(&pinfo);
 
       stdparse(MAXFILES, argv + optind, (stdparserinfo_t *)&pinfo);
+      if( checkflag(pinfo.flags, GREP_FLAG_MATCHFOUND) ) {
+	retval = EXIT_SUCCESS;
+      }
 
       output_wrapper_end(&pinfo);
 

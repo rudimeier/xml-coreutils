@@ -1,6 +1,21 @@
 xml-coreutils NEWS -- history of user visible changes
 Copyright (C) 2006-2010 Laird Breyer.
 
+xml-coreutils 0.8c
+
+The {},{@},{-} symbols used by the xml-find are now substituted in all the 
+command line strings wherever they occur (similar to GNU find behaviour).
+This gives better integration with the shell, ie it allows commands such as
+the following to work as expected:
+
+xml-find :// -exec bash -c "some script which uses {} etc." \;
+
+The xml-grep return code is now 0 if a pattern match was successful,
+1 if not, and 2 if an error occurred. This is to support commands such as:
+
+xml-grep 'secret' treasure.xml > /dev/null && echo "found"
+
+
 xml-coreutils 0.8b
 
 Bugfixes.

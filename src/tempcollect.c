@@ -221,7 +221,7 @@ bool_t write_start_tag_tempcollect(tempcollect_t *tc, const char_t *name, const 
       ok &= putc_tempcollect(tc, ' ');
       ok &= puts_tempcollect(tc, att[0]);
       ok &= puts_tempcollect(tc, "=\"");
-      ok &= puts_tempcollect(tc, att[1]);
+      ok &= write_coded_entities_tempcollect(tc, att[1], att[1] ? strlen(att[1]) : 0);
       ok &= putc_tempcollect(tc, '\"');
       att += 2;
     }

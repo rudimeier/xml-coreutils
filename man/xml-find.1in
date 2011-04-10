@@ -34,7 +34,7 @@ actions are:
 Prints the XPATH for the current node.
 .IP -exec PROGRAM [ARG]... ';'
 Execute PROGRAM with the optional list of ARG arguments. The final semicolon
-indicates the end of arguments, and must be supplied even if no arguments are given. There are three special arguments, {} expands to the path for the currently visited tag, {@} expands to a list of attributes and values associated with the current tag, and {-} expands to the name of a temporary file which contains a copy of the currently visited node. Evaluates to true if PROGRAM returns zero, and false otherwise.
+indicates the end of arguments, and must be supplied even if no arguments are given. There are three special arguments, {} expands to the path for the currently visited tag, {@} expands to a list of attributes and values associated with the current tag, and {-} expands to the name of a temporary file which contains a copy of the currently visited node. These symbols are expanded everywhere they occur in each argument. Evaluates to true if PROGRAM returns zero, and false otherwise.
 .IP -execnode PROGRAM [ARG]... ';'
 Similar to -exec, but all paths are relative to the current node.
 .IP -name PATTERN

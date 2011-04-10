@@ -30,6 +30,7 @@
 
 const char_t *get_entity(char_t c);
 const char_t *find_next_special(const char_t *begin, const char_t *end);
+
 __inline__ static bool_t xml_whitespace(char_t c) {
   return ((c == 0x20) || (c == 0x09) || (c == 0x0D) || (c == 0x0A));
 }

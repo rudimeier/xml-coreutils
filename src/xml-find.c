@@ -69,6 +69,7 @@ typedef struct {
     const char_t *string;
     int integer;
   } arg;
+  cstring_t tmp;
 } exp_t;
 
 typedef struct {
@@ -86,8 +87,12 @@ bool_t create_explist(explist_t *el) {
 }
 
 bool_t free_explist(explist_t *el) {
+  int i;
   if( el ) {
     if( el->list ) {
+      for(i = 0; i < el->num; i++) {
+	free_cstring(&el->list[i].tmp);
+      }
       free_mem(&el->list, &el->max);
     }
   }
@@ -103,6 +108,7 @@ exp_t *add_explist(explist_t *el) {
     if( el->num < el->max ) {
       e = &el->list[el->num];
       memset(e, 0, sizeof(exp_t));
+      /* tmp cstring null ok */
       el->num++;
     }
   }
@@ -367,18 +373,25 @@ bool_t parse_expressions(parserinfo_find_t *pinfo, char **argv) {
 	  while( argv && *argv ) {
 	    e = add_explist(&pinfo->expressions);
 	    if( e ) {
-	      if( strcmp(*argv, "{}") == 0 ) {
-		e->id = SUBP; /* substitute node path */
+	      
+	      if( strstr(*argv, "{}") ) {
 		setflag(&pinfo->flags,FIND_FLAG_SAVEPATH);
 		setflag(&pinfo->flags,FIND_FLAG_SAVEBASE);
-	      } else if( strcmp(*argv, "{@}") == 0 ) {
-		e->id = SUBA; /* substitute attributes */
+	      }
+	      if( strstr(*argv, "{@}") ) {
 		setflag(&pinfo->flags,FIND_FLAG_SAVEATTS);
-	      } else if( strcmp(*argv, "{-}") == 0 ) {
-		e->id = SUBF; /* substitute temporary file */
-		e->arg.string = make_template_tempfile(progname);
+	      }
+	      if( strstr(*argv, "{-}") == 0 ) {
 		setflag(&pinfo->flags,FIND_FLAG_SAVEXML);
 		setflag(&pinfo->flags,FIND_FLAG_SAVEPATH);
+	      }
+
+	      if( strcmp(*argv, "{}") == 0 ) {
+		e->id = SUBP; /* substitute node path */
+	      } else if( strcmp(*argv, "{@}") == 0 ) {
+		e->id = SUBA; /* substitute attributes */
+	      } else if( strcmp(*argv, "{-}") == 0 ) {
+		e->id = SUBF; /* substitute temporary file */
 	      } else if( strcmp(*argv,";") == 0 ) {
 		e->id = SEMIC;
 		break;
@@ -386,6 +399,7 @@ bool_t parse_expressions(parserinfo_find_t *pinfo, char **argv) {
 		e->id = ARG;
 		e->arg.string = *argv;
 	      }
+
 	    }	    
 	    argv++;
 	  }
@@ -545,6 +559,65 @@ bool_t write_xml_tempfile(tempcollect_t *sav, char *tmplate,
   return FALSE;
 }
 
+char *create_xml_tempfile(findnode_t *node, tempcollect_t *sav,
+			  bool_t relative) {
+  const char *a;
+  char *p = NULL;
+  if( node ) {
+    if( !CSTRINGP(node->xml.file) ) {
+      strdup_cstring(&node->xml.file, 
+		     make_template_tempfile(progname));
+      p = p_cstring(&node->xml.file);
+      a = relative ? "" : p_cstring(&node->path);
+      if( !write_xml_tempfile(sav, p, node->xml.start, node->xml.stop, a) ) {
+	errormsg(E_FATAL, "unexpected error while writing tempfile %s.\n", p);
+      }
+    }
+    return p_cstring(&node->xml.file);
+  }
+  return p;
+}
+
+/* copy the template, replacing the {} {@} {-} symbols */
+char *subst_curl(cstring_t *cs, const char_t *template, findnode_t *node, bool_t relative) {
+  const char_t *c = begin_cstring(cs);
+  const char_t *e = template + strlen(template);
+  const char_t *b = skip_unescaped_delimiters(template, e, "{", '\\');
+  const char *a;
+
+  while( b && (b < e) ) {
+    c = write_cstring(cs, c, template, b - template);
+    b++;
+    if( *b == '}' ) {
+      a = relative ? p_cstring(&node->basename) : p_cstring(&node->path);
+      c = puts_cstring(cs, c, a);
+      b++;
+    } else if( strncmp(b, "@}", 2) == 0 ) {
+      a = begin_charbuf(&node->atts);
+      while(a && *a) {
+	c = puts_cstring(cs, c, a);
+	c = puts_cstring(cs, c, " ");
+	a += strlen(a) + 1;
+	c = puts_cstring(cs, c, a);
+	a += strlen(a) + 1;
+	if( a && *a ) {
+	  c = puts_cstring(cs, c, " ");
+	}
+      }
+      b += 2;
+    } else if( strncmp(b, "-}", 2) == 0 ) {
+      c = puts_cstring(cs, c, p_cstring(&node->xml.file));
+      b += 2;
+    }
+
+    template = b;
+    b = skip_unescaped_delimiters(template, e, "{", '\\');
+  }
+
+  puts_cstring(cs, c, template); 
+  return p_cstring(cs);
+}
+
 bool_t action_exec(explist_t *el, findnode_t *node, tempcollect_t *sav,
 		   int nstart, int nstop, stringlist_t *tmp, 
 		   bool_t relative) {
@@ -562,7 +635,11 @@ bool_t action_exec(explist_t *el, findnode_t *node, tempcollect_t *sav,
       f = get_explist(el, n);    
       switch(f->id) {
       case ARG:
-	add_stringlist(tmp, f->arg.string, STRINGLIST_DONTFREE);
+	if( !CSTRINGP(node->xml.file) && strstr(f->arg.string, "{-}") ) {
+	  create_xml_tempfile(node, sav, relative);
+	}
+	p = subst_curl(&f->tmp, f->arg.string, node, relative);
+	add_stringlist(tmp, p, STRINGLIST_DONTFREE);
 	break;
       case SUBP:
 	a = relative ? p_cstring(&node->basename) : p_cstring(&node->path);
@@ -578,10 +655,7 @@ bool_t action_exec(explist_t *el, findnode_t *node, tempcollect_t *sav,
 	}
 	break;
       case SUBF:
-	strdup_cstring(&node->xml.file, f->arg.string);
-	p = p_cstring(&node->xml.file);
-	a = relative ? "" : p_cstring(&node->path);
-	write_xml_tempfile(sav, p, node->xml.start, node->xml.stop, a);
+	p = create_xml_tempfile(node, sav, relative);
 	add_stringlist(tmp, p, STRINGLIST_DONTFREE);
 	break;
       default:

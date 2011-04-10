@@ -1,3 +1,8 @@
+xml-coreutils 0.8c:
+	* coded entities in write_start_tag_tempcollect() (thanks Edwin Watkeys)
+	* change xml-grep exit code to indicate match (0/1) or error 2
+	* perform xml-find -exec variable substitution of {} in all arguments
+	* fix bug in exec_cmdline(): waitpid() return status
 xml-coreutils 0.8b:
 	* fix initialization bug in leafparse()
 	* memory overwrite in write_escape_cstring()

@@ -1,0 +1,17 @@
+_PURPOSE_
+xml-find EXEC test with {-}, with entity reference in attribute value
+_INPUT_
+<?xml version="1.0"?>
+<a b="&quot;c&quot;">
+   hello
+</a>
+_COMMAND_
+xml-find :/ -exec "`which cat`" '{-}' ';' -exec "`which echo`" ';'
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<a b="&quot;c&quot;">
+   hello
+</a>
+_END_
