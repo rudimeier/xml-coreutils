@@ -425,6 +425,9 @@ xml-grep [OPTIONS] PATTERN [[FILE]... [:XPATH]...]...
 * The current implementation needs an overhaul to allow even a simple
   set of context switches.
 
+* The return value indicates if a pattern was match successfully. This
+  is handy for shell scripts.
+
 XML-FMT (xml-x2x)
 
 This command has the signature
@@ -717,13 +720,37 @@ xml-file [OPTIONS] [FILE]...
   of an XML document, eg if a word processing document contains embedded
   MathML or SVG.
 
+XML-PASTE (xml-x2x)
+
+This command has the signature
+
+xml-paste [OPTIONS] [[FILE] [:XPATH]...]... 
+
+* The coreutils paste command concatenates the equally numbered lines
+  from all the input files. Similarly, the xml-paste command
+  concatenates the equally numbered XML subtrees from the input files
+  into a single XML result subtree.
+
+* The subtrees are numbered by their defining XPATH expressions,
+  ie if an input requires ://xyz, then the instances ://xyz[i] for 
+  i = 1, 2, 3, ... are the required numbered subtrees.
+
+* Example: xml-paste a.xml ://secret b.xml ://password
+  produces as output an XML file which combines (//secret[1], //password[1]),
+  (//secret[2],//password[2]), etc as a forest of nodes.
+
+* Why not paste the leaves of the input files directly? While this would
+  be closer to what coreutils paste does, it would not be very useful unless
+  the structures of the input files are identical.
+
 XML-AWK (xml-x2u)
 
 This command has the signature
 
-xml-file [OPTIONS] [SCRIPT] [FILE]...
+xml-awk [OPTIONS] [SCRIPT] [FILE]...
 
 * The language is a cousin of awk, but with modifications designed to enhance
   the ability to reference, extract and manipulate XML subtrees.
 
+* This project won't be implemented for a while.
   

@@ -29,6 +29,10 @@ bool_t create_stdselect(stdselect_t *sel) {
     ok &= create_xpredicatelist(&sel->preds);
     ok &= create_xattributelist(&sel->atts);
     ok &= create_nhistory(&sel->history);
+
+    sel->active = FALSE;
+    sel->mindepth = INFDEPTH;
+    sel->maxdepth = 0;
     return ok;
   }
   return FALSE;

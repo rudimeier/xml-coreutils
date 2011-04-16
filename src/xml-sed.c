@@ -733,11 +733,11 @@ result_t do_leaf_node(void *user, unecho_t *ue) {
   parserinfo_sed_t *pinfo = (parserinfo_sed_t *)user;
   if( pinfo && ue ) {
 
-    /* puts_stdout("do_leaf_node"); */
+    /* puts_stdout("{do_leaf_node"); */
     /* puts_stdout(p_cstring(&pinfo->lfp.cp.path)); */
     /* putc_stdout('\n'); */
     /* write_stdout_tempcollect((tempcollect_t*)&ue->sv); */
-    /* putc_stdout('\n'); */
+    /* puts_stdout("}\n"); */
 
 
     if( true_and_clearflag(&pinfo->vm.flags, SEDVM_FLAG_JOIN) ) {
@@ -751,9 +751,9 @@ result_t do_leaf_node(void *user, unecho_t *ue) {
     /* use now obsolete ue as a temporary */
     tmp = &ue->sv;
 
-    /* puts_stdout("pre_exec"); */
+    /* puts_stdout("{pre_exec"); */
     /* write_stdout_tempcollect((tempcollect_t*)&pinfo->vm.patternsp); */
-    /* putc_stdout('\n'); */
+    /* puts_stdout("}\n"); */
 
     if( !pinfo->lfp.sel.active ||
 	(pinfo->lfp.sel.active && /* only exec script on active leaf nodes */
@@ -809,6 +809,7 @@ bool_t create_parserinfo_sed(parserinfo_sed_t *pinfo) {
 
     setflag(&pinfo->lfp.setup.flags,LFP_ABSOLUTE_PATH);
     setflag(&pinfo->lfp.setup.flags,LFP_ALWAYS_CHARDATA);
+    setflag(&pinfo->lfp.setup.flags,LFP_ATTRIBUTES);
     clearflag(&pinfo->lfp.setup.flags,LFP_SKIP_EMPTY);
     
     setflag(&pinfo->lfp.setup.flags,LFP_PRE_OPEN);

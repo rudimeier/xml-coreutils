@@ -28,7 +28,7 @@ void exit_tempfile_handling();
 
 char *make_template_tempfile(const char *basename);
 int open_tempfile(char *template);
-int remove_tempfile(char *template);
+int remove_tempfile(const char *template);
 int save_stdin_tempfile(char **tempfile, pid_t *child_pid, const char *progname);
 
 #endif

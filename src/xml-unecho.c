@@ -127,7 +127,10 @@ bool_t create_parserinfo_unecho(parserinfo_unecho_t *pinfo) {
 
     if( checkflag(pinfo->flags,UNECHO_FLAG_SED) ) {
       setflag(&pinfo->lfp.setup.flags,LFP_ABSOLUTE_PATH);
+      setflag(&pinfo->lfp.setup.flags,LFP_ALWAYS_CHARDATA);
     }
+
+    setflag(&pinfo->lfp.setup.flags,LFP_ATTRIBUTES);
 
     setflag(&pinfo->lfp.setup.flags,LFP_PRE_OPEN);
     setflag(&pinfo->lfp.setup.flags,LFP_PRE_CLOSE);

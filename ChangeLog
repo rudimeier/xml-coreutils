@@ -1,3 +1,6 @@
+xml-coreutils 0.8.1:
+	* fix bug in leafparse.h: some defined flags had same value
+	* fix bug in xml-printf assign_file_collectors() incorrect reset
 xml-coreutils 0.8c:
 	* coded entities in write_start_tag_tempcollect() (thanks Edwin Watkeys)
 	* change xml-grep exit code to indicate match (0/1) or error 2

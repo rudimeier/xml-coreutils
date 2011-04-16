@@ -1,6 +1,11 @@
 xml-coreutils NEWS -- history of user visible changes
 Copyright (C) 2006-2010 Laird Breyer.
 
+xml-coreutils 0.8.1
+
+The new command xml-paste merges instances of admissible nodes from
+several XML files in parallel. 
+
 xml-coreutils 0.8c
 
 The {},{@},{-} symbols used by the xml-find are now substituted in all the 

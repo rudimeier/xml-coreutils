@@ -101,7 +101,7 @@ int open_tempfile(char *template) {
   return fd;
 }
 
-bool_t remove_tempfile(char *template) {
+bool_t remove_tempfile(const char *template) {
   int r = FALSE;
   if( template ) {
     busy = 1; /* possible compiler reordering? */

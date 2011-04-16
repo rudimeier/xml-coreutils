@@ -56,7 +56,7 @@ LEAFPARSING = $(LFPARSE) $(STDSEL) $(XPATH) $(XMATCH) $(XPRED) $(XATT) $(LF) $(H
 
 bin_PROGRAMS = xml-cat xml-printf xml-echo xml-less xml-strings xml-ls \
 	xml-file xml-find xml-grep xml-fmt xml-wc xml-cut xml-head \
-	xml-unecho xml-sed xml-rm xml-cp xml-mv xml-fixtags xml-awk
+	xml-unecho xml-sed xml-rm xml-cp xml-mv xml-fixtags xml-paste xml-awk
 
 xml_cat_SOURCES = xml-cat.c $(STDCOMMON) $(WRAP)
 
@@ -96,6 +96,8 @@ xml_mv_SOURCES = xml-mv.c $(STDCOMMON) $(STDPARSING) $(STDPRINT) $(RCM) $(ROLLBA
 xml_fixtags_SOURCES = xml-fixtags.c $(STDCOMMON) $(XPATH) $(WRAP) $(OBJSTACK) $(STRLST) $(HTFILT)
 
 xml_file_SOURCES = xml-file.c $(STDCOMMON) $(STDPARSING) 
+
+xml_paste_SOURCES = xml-paste.c $(STDCOMMON) $(STDPARSING) $(COLLECT) $(TEMPF) $(STRLST) $(WRAP)
 
 xml_awk_SOURCES = xml-awk.c $(STDCOMMON) $(STDPARSING) $(VAR) $(COLLECT) $(AWKVM) $(AWKMEM) $(AWKAST) $(SYM)
 xml_awk_LDADD = @LEXLIB@

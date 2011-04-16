@@ -37,13 +37,15 @@ LS = ls01.sh ls02.sh
 
 MV = mv01.sh mv02.sh mv03.sh
 
+PASTE = paste01.sh
+
 PRINTF = printf01.sh printf02.sh printf03.sh printf04.sh \
-	printf05.sh printf06.sh
+	printf05.sh printf06.sh printf07.sh
 
 RM = rm01.sh rm02.sh rm03.sh rm04.sh
 
 SED = sed01.sh sed02.sh sed03.sh sed04.sh \
-	sed05.sh sed06.sh
+	sed05.sh sed06.sh sed07.sh sed08.sh
 
 STRINGS = strings01.sh strings02.sh strings03.sh
 
@@ -56,7 +58,7 @@ IDIOMS =
 TESTS = $(AWK) $(CAT) $(CP) $(CUT) \
 	$(ECHO) $(FILE) $(FIND) $(FIXTAGS) \
 	$(FMT) $(GREP) $(HEAD) $(LESS) \
-	$(LS) $(MV) $(PRINTF) $(RM) \
+	$(LS) $(MV) $(PASTE) $(PRINTF) $(RM) \
 	$(SED) $(STRINGS) $(UNECHO) $(WC) \
 	$(IDIOMS)
 
@@ -88,11 +90,12 @@ EXTRA_DIST = compile_test.sh \
 	head01.testin head02.testin \
 	ls01.testin ls02.testin \
 	mv01.testin mv02.testin mv03.testin \
+	paste01.testin \
 	printf01.testin printf02.testin printf03.testin printf04.testin \
-	printf05.testin printf06.testin \
+	printf05.testin printf06.testin printf07.testin \
 	rm01.testin rm02.testin rm03.testin rm04.testin \
 	sed01.testin sed02.testin sed03.testin sed04.testin \
-	sed05.testin sed06.testin \
+	sed05.testin sed06.testin sed07.testin sed08.testin \
 	strings01.testin strings02.testin strings03.testin \
 	unecho01.testin unecho02.testin unecho03.testin \
 	wc01.testin \

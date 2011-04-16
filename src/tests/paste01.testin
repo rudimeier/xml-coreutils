@@ -1,0 +1,30 @@
+_PURPOSE_
+xml-paste merges nodes in parallel.
+_INPUT_ 
+<?xml version="1.0"?>
+<root>
+	<a>A1</a>
+	<a>A2</a>
+	<a>A3</a>
+	<b>B1</b>
+	<b>B2</b>
+	<b>B3</b>
+	<c>C1</c>
+	<c>C2</c>
+	<c>C3</c>
+	<d>D1</d>
+	<d>D2</d>
+	<d>D3</d>
+</root>
+_COMMAND_
+cat > infile ; xml-paste infile ://a ://b ://c
+_EXITCODE_
+0
+_OUTPUT_
+<?xml version="1.0"?>
+<root>
+<tab><a>A1</a><b>B1</b><c>C1</c></tab>
+<tab><a>A2</a><b>B2</b><c>C2</c></tab>
+<tab><a>A3</a><b>B3</b><c>C3</c></tab>
+</root>
+_END_

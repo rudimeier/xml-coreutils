@@ -1,0 +1,31 @@
+_PURPOSE_
+xml-sed swap hold/pattern spaces.
+_INPUT_ 
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<g>I</g>
+		</c>
+		<h>J K L</h>
+	</b>
+</a>
+_COMMAND_
+xml-sed '4h;10x;13x'
+_EXITCODE_
+0
+_OUTPUT_
+<a>
+	<b bb="A B">
+		<c>
+			<d>C D E</d>
+			<e>F G</e>
+			<f>H</f>
+			<d>C D E</d>
+		</c>
+		<c><g>I</g></c>
+	</b>
+</a>
+_END_

@@ -1,0 +1,19 @@
+_PURPOSE_
+xml-sed enters empty tags.
+_INPUT_ 
+  <b>
+     <x>
+        <y></y>
+     </x>
+  </b>
+_COMMAND_
+xml-sed --unecho '' | grep '<!'
+_EXITCODE_
+0
+_OUTPUT_
+<!-- 1* [/b]\n -->
+<!-- 2* [/b/x]\n -->
+<!-- 3* [/b/x/y] -->
+<!-- 4* [/b/x]\n -->
+<!-- 5* [/b]\n -->
+_END_

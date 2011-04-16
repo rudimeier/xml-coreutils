@@ -102,6 +102,10 @@ bool_t stdparse(int index, char **argv, stdparserinfo_t *pinfo);
  */
 bool_t stdparse2(int n, cstringlst_t files, cstringlst_t *xpaths,
 		 stdparserinfo_t *pinfo);
+/* stdparse3: create/destroy parser objects used internally by stdparse2 */
+bool_t stdparse3_create(parser_t *parser, stdparserinfo_t *pinfo);
+bool_t stdparse3_free(parser_t *parser, stdparserinfo_t *pinfo);
+
 
 bool_t stdparse_failed(stdparserinfo_t *pinfo);
 

@@ -1,0 +1,12 @@
+_PURPOSE_
+xml-printf print from several files
+_INPUT_ 
+<a><greeting>hello</greeting></a>
+<b><farewell>goodbye</farewell></b>
+_COMMAND_
+cat > infile ; head -1 infile > a.xml ; tail -1 infile > b.xml ; xml-printf '%s %s\n' a.xml :/a/greeting b.xml :/b/farewell
+_EXITCODE_
+0
+_OUTPUT_
+hello goodbye
+_END_

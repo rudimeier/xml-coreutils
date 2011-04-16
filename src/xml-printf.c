@@ -277,12 +277,10 @@ void assign_file_collectors(parserinfo_printf_t *pinfo, const char *inputfile) {
   tempcollect_t *tc;
 
   if( pinfo && inputfile ) {
-    reset_xmatcher(&pinfo->xm);
-    reset_xpredicatelist(&pinfo->xp);
-    reset_xattributelist(&pinfo->xa);
     /* anything below pinfo->collectors.num is for another file */
     pinfo->args.mark = pinfo->collectors.num;
-    i = 0;
+    i = pinfo->args.mark;
+
     for(f = 0; f < pinfo->n; f++) {
       if( strcmp(inputfile, pinfo->files[f]) == 0 ) {
 	for(x = 0; pinfo->xpaths[f][x]; x++) {

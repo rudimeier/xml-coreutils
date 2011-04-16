@@ -242,6 +242,42 @@ bool_t free_stdparserinfo(stdparserinfo_t *pinfo) {
   return FALSE;
 }
 
+bool_t stdparse3_create(parser_t *parser, stdparserinfo_t *pinfo) {
+  callback_t cb;
+  if( pinfo ) {
+    if( create_parser(parser, pinfo) ) {
+
+      /* force zero memory: prevents bugs when callback_t is extended */
+      memset(&cb, 0, sizeof(callback_t));
+
+      cb.start_tag = std_start_tag; /* always needed */
+      cb.end_tag = std_end_tag; /* always needed */
+
+      cb.chardata = pinfo->setup.cb.chardata ? std_chardata : NULL;
+      cb.pidata = pinfo->setup.cb.pidata ? std_pidata : NULL;
+      cb.comment = pinfo->setup.cb.comment ? std_comment : NULL;
+      cb.start_cdata = pinfo->setup.cb.start_cdata ? std_start_cdata : NULL;
+      cb.end_cdata = pinfo->setup.cb.end_cdata ? std_end_cdata : NULL;
+      cb.start_doctypedecl = pinfo->setup.cb.start_doctypedecl ? std_start_doctypedecl : NULL;
+      cb.end_doctypedecl = pinfo->setup.cb.end_doctypedecl ? std_end_doctypedecl : NULL;
+      cb.entitydecl = pinfo->setup.cb.entitydecl;
+      cb.dfault = pinfo->setup.cb.dfault ? std_dfault : NULL;
+      
+      return setup_parser(parser, &cb);
+    }
+  }
+  return FALSE;
+}
+
+bool_t stdparse3_free(parser_t *parser, stdparserinfo_t *pinfo) {
+  if( pinfo ) {
+    free_parser(parser);
+    return TRUE;
+  }
+  return FALSE;
+}
+
+
 bool_t stdparse_failed(stdparserinfo_t *pinfo) {
   return (!pinfo || checkflag(pinfo->reserved,STDPARSE_RESERVED_PARSEFAIL));
 }
@@ -250,7 +286,6 @@ bool_t stdparse2(int n, cstringlst_t files, cstringlst_t *xpaths,
 		 stdparserinfo_t *pinfo) {
   parser_t parser;
   stream_t strm;
-  callback_t cb;
   cstringlst_t xp;
   int f;
 
@@ -258,25 +293,7 @@ bool_t stdparse2(int n, cstringlst_t files, cstringlst_t *xpaths,
 
     if( reset_stdparserinfo(pinfo) ) {
 
-      if( create_parser(&parser, pinfo) ) {
-
-	/* force zero memory: prevents bugs when callback_t is extended */
-	memset(&cb, 0, sizeof(callback_t));
-
-	cb.start_tag = std_start_tag; /* always needed */
-	cb.end_tag = std_end_tag; /* always needed */
-
-	cb.chardata = pinfo->setup.cb.chardata ? std_chardata : NULL;
-	cb.pidata = pinfo->setup.cb.pidata ? std_pidata : NULL;
-	cb.comment = pinfo->setup.cb.comment ? std_comment : NULL;
-	cb.start_cdata = pinfo->setup.cb.start_cdata ? std_start_cdata : NULL;
-	cb.end_cdata = pinfo->setup.cb.end_cdata ? std_end_cdata : NULL;
-	cb.start_doctypedecl = pinfo->setup.cb.start_doctypedecl ? std_start_doctypedecl : NULL;
-	cb.end_doctypedecl = pinfo->setup.cb.end_doctypedecl ? std_end_doctypedecl : NULL;
-	cb.entitydecl = pinfo->setup.cb.entitydecl;
-	cb.dfault = pinfo->setup.cb.dfault ? std_dfault : NULL;
-
-	setup_parser(&parser, &cb);
+      if( stdparse3_create(&parser, pinfo) ) {
 
 	for(f = 0; (f < n) && !checkflag(cmd,CMD_QUIT); f++) {
 
@@ -335,7 +352,7 @@ bool_t stdparse2(int n, cstringlst_t files, cstringlst_t *xpaths,
 	  reset_stdparserinfo(pinfo);
 	}
 
-	free_parser(&parser);
+	stdparse3_free(&parser, pinfo);
       }
       return TRUE;
     }

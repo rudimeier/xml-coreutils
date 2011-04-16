@@ -1,0 +1,62 @@
+\" t
+.TH XML-PASTE 1 "xml-coreutils" "Version @VERSION@" ""
+.SH NAME
+xml-paste \- merge admissible nodes from XML files on standard output.
+.SH SYNOPSIS
+.HP
+.B xml-paste 
+.RI [ OPTION ]...
+.R [
+.RI [ FILE ]...
+.RI [: XPATH ]...
+.R ]...
+.SH DESCRIPTION
+.PP
+.B xml-paste
+traverses all FILEs in parallel, looking for admissible nodes which match a corresponding XPATH, and writing a series of <tab> nodes on standard output. The first instance of every admissible node is included in 
+the first <tab> node, then the second instance of every admissible node is included in the second <tab> node, etc.
+.PP
+.B xml-paste
+is inspired by
+.BR paste (1):
+whereas the latter merges successive lines, the former merges successive admissible nodes/subtrees.
+.SH OPTIONS
+None.
+.SH EXIT STATUS
+xml-paste returns 0 on success, or 1 otherwise.
+.SH EXAMPLE
+.P
+If file1 contains the nodes foo[1], foo[2], ..., and 
+file2 contains the nodes bar[1], bar[2], ..., then 
+the following command 
+outputs an XML file containing a list of tabs such that
+tab[1] contains foo[1], bar[1], and 
+tab[2] contains foo[2], bar[2], etc.
+.P
+.na
+.EX
+xml-paste file1 ://foo file2 ://bar
+.EE
+.br
+.SH BUGS
+.P
+The ordering of the nodes inside each output <tab> is not necessarily the command line ordering, when the total number of XPATHs is large (more than 16 or so). 
+.SH AUTHORS
+.P
+.MT laird@lbreyer.com
+Laird A. Breyer
+.ME
+is the original author of this software.
+The source code (GPLv3 or later) for the latest version is available at the
+following locations: 
+.PP
+.na 
+.UR http://www.lbreyer.com/gpl.html
+.UE
+.br
+.UR http://xml-coreutils.sourceforge.net
+.UE
+.ad
+.SH SEE ALSO
+.PP
+.BR xml-coreutils (7)

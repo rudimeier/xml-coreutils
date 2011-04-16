@@ -51,6 +51,8 @@ interactively display an XML file on a terminal.
 list the contents of an XML file.
 .IP \fBxml-mv\fR(1) 15
 move nodes from XML files to an XML file or the standard output.
+.IP \fBxml-paste\fR(1) 15
+merge admissible nodes from XML files on the standard output.
 .IP \fBxml-printf\fR(1) 15
 format and print data in an XML file to the standard output.
 .IP \fBxml-rm\fR(1) 15
@@ -233,6 +235,7 @@ The xml-coreutils collection is still incomplete, but already usable for limited
 .BR xml-less (1)
 .BR xml-ls (1)
 .BR xml-mv (1)
+.BR xml-paste (1)
 .BR xml-printf (1)
 .BR xml-rm (1)
 .BR xml-sed (1)

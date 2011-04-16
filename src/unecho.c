@@ -124,8 +124,8 @@ bool_t reconstruct_unecho(unecho_t *ue,
 			  const byte_t *buf, size_t buflen) {
   if( ue ) {
     if( format_path_unecho(ue, xpath) ) {
-      return (buflen > 0) ? 
-	reconstruct_stringval_unecho(&ue->sv, (char_t *)buf, buflen) : TRUE;
+      return (buflen > 0) ?
+      	reconstruct_stringval_unecho(&ue->sv, (char_t *)buf, buflen) : TRUE;
     }
   }
   return FALSE;

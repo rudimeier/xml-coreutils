@@ -50,19 +50,20 @@
 #define LFP_R_CDATA     0x08
 #define LFP_R_EMPTY     0x10
 
-#define LFP_SQUEEZE           0x01 /* squeeze whitespace */
-#define LFP_ABSOLUTE_PATH     0x02 /* force all paths absolute */
-#define LFP_SKIP_EMPTY        0x04 /* skip whitespace chardata */
-#define LFP_ATTRIBUTES        0x08 /* incl. attributes in paths */
-#define LFP_ALWAYS_CHARDATA   0x10 /* always call chardata fun */
-
 /* these flags tell the parser when to call leaf_node_fun
    make sure to set at least one, otherwise the parser won't
    call the leaf_node_fun at all */
-#define LFP_PRE_OPEN      0x08 
-#define LFP_POST_OPEN     0x10
-#define LFP_PRE_CLOSE     0x20
-#define LFP_POST_CLOSE    0x40
+#define LFP_PRE_OPEN      0x01 
+#define LFP_POST_OPEN     0x02
+#define LFP_PRE_CLOSE     0x04
+#define LFP_POST_CLOSE    0x08
+
+#define LFP_SQUEEZE           0x010 /* squeeze whitespace */
+#define LFP_ABSOLUTE_PATH     0x020 /* force all paths absolute */
+#define LFP_SKIP_EMPTY        0x040 /* skip whitespace chardata */
+#define LFP_ATTRIBUTES        0x080 /* incl. attributes in paths */
+#define LFP_ALWAYS_CHARDATA   0x100 /* always call chardata fun */
+
 
 typedef enum {lt_first = 0, lt_middle, lt_last} linetype_t;
 typedef struct {
