@@ -16,8 +16,8 @@ AC_PROG_YACC
 AC_CHECK_LIB([m],[log])
 AC_CHECK_LIB([expat],[XML_ParseBuffer],,[AC_MSG_ERROR([Missing libexpat])])
 # (these two go together in this order)
-AC_CHECK_LIB([ncurses],[initscr])
-AC_CHECK_LIB([slang],[SLsmg_init_smg],,[AC_MSG_ERROR([Missing libslang2])])
+AC_CHECK_LIB([ncurses],[initscr],true)
+AC_CHECK_LIB([slang],[SLsmg_init_smg],true,[AC_MSG_ERROR([Missing libslang2])])
 
 ## Checks for header files.
 AC_HEADER_STDC
