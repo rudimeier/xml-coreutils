@@ -1,5 +1,4 @@
 AUTOMAKE_OPTIONS = 1.4 gnits
-ACLOCAL = -I config
 datarootdir ?= $(prefix)/share
 
 ACLOCAL_AMFLAGS = -I m4 --install
