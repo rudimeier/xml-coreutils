@@ -62,9 +62,7 @@ TESTS = $(AWK) $(CAT) $(CP) $(CUT) \
 	$(SED) $(STRINGS) $(UNECHO) $(WC) \
 	$(IDIOMS)
 
-CURDIR ?= $(.CURDIR)
-
-TESTS_ENVIRONMENT = TESTBIN=$(CURDIR)/.. DOCDIR=$(srcdir)/../../doc sourcedir=$(srcdir)
+TESTS_ENVIRONMENT = TESTBIN=$(builddir)/.. DOCDIR=$(srcdir)/../../doc sourcedir=$(srcdir)
 
 check_SCRIPTS = $(TESTS)
 
@@ -103,5 +101,5 @@ EXTRA_DIST = compile_test.sh \
 
 SUFFIXES = .testin .sh
 .testin.sh:
-	cat $< | /bin/sh $(CURDIR)/compile_test.sh > $@
+	cat $< | /bin/sh $(srcdir)/compile_test.sh > $@
 	chmod +x $@
