@@ -25,7 +25,10 @@ AC_CHECK_HEADERS([wchar.h wctype.h],,
 [
 	AC_MSG_WARN([No wide character headers, disabling full internationalization.])
 ])
-AC_CHECK_HEADERS([expat.h slang.h],,[AC_MSG_ERROR([Missing expat.h or slang.h])])
+AC_CHECK_HEADERS([expat.h],,[AC_MSG_ERROR([Missing expat.h])])
+AC_CHECK_HEADERS([slang.h],,[AC_MSG_ERROR([Missing slang.h])])
+
+
 
 ## Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST
