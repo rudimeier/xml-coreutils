@@ -102,5 +102,6 @@ xml_paste_SOURCES = xml-paste.c $(STDCOMMON) $(STDPARSING) $(COLLECT) $(TEMPF) $
 xml_awk_SOURCES = xml-awk.c $(STDCOMMON) $(STDPARSING) $(VAR) $(COLLECT) $(AWKVM) $(AWKMEM) $(AWKAST) $(SYM)
 xml_awk_LDADD = @LEXLIB@
 
+BUILT_SOURCES = awkl.c awkp.c awkp.h
 check_PROGRAMS = 
 
