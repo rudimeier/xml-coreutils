@@ -14,8 +14,6 @@ AC_PROG_YACC
 
 ## Checks for libraries.
 AC_CHECK_LIB([expat],[XML_ParseBuffer],,[AC_MSG_ERROR([Missing libexpat])])
-# (these two go together in this order)
-AC_CHECK_LIB([ncurses],[initscr],true)
 
 ## Checks for header files.
 AC_HEADER_STDC

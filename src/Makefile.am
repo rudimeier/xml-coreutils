@@ -69,7 +69,7 @@ xml_echo_SOURCES = xml-echo.c $(COMMON) $(WRAP) $(IO) $(STDOUT) $(FORMAT) $(XPAT
 
 if WITH_SLANG
 xml_less_SOURCES = xml-less.c $(COMMON) $(IO) $(MEM) $(BLOCKS) $(STDOUT) $(CURSOR) $(PARSER) $(LESSUI) $(ENTITIES) $(ATTLST) $(HASH) $(XPATH) $(CSTRING) $(TEMPF) $(STRLST)
-xml_less_LDADD = -lslang -lncurses -lm
+xml_less_LDADD = -lslang -lm
 endif
 
 xml_strings_SOURCES = xml-strings.c $(STDCOMMON) $(STDPARSING)
