@@ -7,7 +7,7 @@ _INPUT_
 	<b>def</b>
 </a>
 _COMMAND_
-xml-printf "[%s]\n" "$TMP_PATH/input" :/a/b
+cat >/dev/null; xml-printf "[%s]\n" "$TMP_PATH/input" :/a/b
 _EXITCODE_
 0
 _OUTPUT_
