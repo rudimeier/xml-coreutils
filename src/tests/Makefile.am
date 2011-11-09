@@ -1,5 +1,3 @@
-AUTOMAKE_OPTIONS = 1.4 gnits
-ACLOCAL = -I ../../config
 datarootdir ?= $(prefix)/share
 
 AWK =
