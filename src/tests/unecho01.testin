@@ -22,7 +22,7 @@ _INPUT_
 	</b>
 </a>
 _COMMAND_
-true; xml-echo -en "`cat "$TMP_PATH/input" | xml-unecho`"
+cat >/dev/null; xml-echo -en "`cat "$TMP_PATH/input" | xml-unecho`"
 _EXITCODE_
 0
 _OUTPUT_

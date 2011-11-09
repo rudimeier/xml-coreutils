@@ -22,7 +22,7 @@ _INPUT_
 	</b>
 </a>
 _COMMAND_
-true; xml-echo -ne "[x]abc[y]def" | xml-cp :/x/ --prepend "$TMP_PATH/input" :/a/b/c
+cat >/dev/null; xml-echo -ne "[x]abc[y]def" | xml-cp :/x/ --prepend "$TMP_PATH/input" :/a/b/c
 _EXITCODE_
 0
 _OUTPUT_
