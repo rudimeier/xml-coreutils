@@ -1,5 +1,5 @@
 _PURPOSE_
-xml-find EXECNODE test with {}, assumes "which echo" works.
+xml-find EXECNODE test with {}
 _INPUT_ 
 <a>
 	<b bb="A B">
@@ -22,7 +22,7 @@ _INPUT_
 	</b>
 </a>
 _COMMAND_
-xml-find -execnode "`which echo`" '{}' ';'
+xml-find -execnode "echo" '{}' ';'
 _EXITCODE_
 0
 _OUTPUT_

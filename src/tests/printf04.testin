@@ -7,7 +7,7 @@ _INPUT_
 	<b>def</b>
 </a>
 _COMMAND_
-xml-printf "an x is an %s\n" "$TMP_PATH/input" ://b@c
+cat >/dev/null; xml-printf "an x is an %s\n" "$TMP_PATH/input" ://b@c
 _EXITCODE_
 0
 _OUTPUT_

@@ -12,7 +12,7 @@ _INPUT_
 	E
 </a>
 _COMMAND_
-true ; (
+cat >/dev/null; (
 xml-printf "[%s]\n" "$TMP_PATH/input" :/a ;
 xml-printf "[%s]\n" "$TMP_PATH/input" :/a/b ;
 xml-printf "[%s]\n" "$TMP_PATH/input" :/a/b/c 

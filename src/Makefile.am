@@ -65,7 +65,7 @@ xml_printf_SOURCES = xml-printf.c $(STDCOMMON) $(STDPARSING) $(COLLECT) $(STRLST
 xml_echo_SOURCES = xml-echo.c $(COMMON) $(WRAP) $(IO) $(STDOUT) $(FORMAT) $(XPATH) $(MEM) $(PARSER) $(ECHOC) $(ENTITIES) $(HASH) $(COLLECT) $(VAR) $(CSTRING)
 
 xml_less_SOURCES = xml-less.c $(COMMON) $(IO) $(MEM) $(BLOCKS) $(STDOUT) $(CURSOR) $(PARSER) $(LESSUI) $(ENTITIES) $(ATTLST) $(HASH) $(XPATH) $(CSTRING) $(TEMPF) $(STRLST)
-xml_less_LDADD = -lslang -lncurses
+xml_less_LDADD = -lslang -lncurses -lm
 
 xml_strings_SOURCES = xml-strings.c $(STDCOMMON) $(STDPARSING)
 
@@ -102,5 +102,6 @@ xml_paste_SOURCES = xml-paste.c $(STDCOMMON) $(STDPARSING) $(COLLECT) $(TEMPF) $
 xml_awk_SOURCES = xml-awk.c $(STDCOMMON) $(STDPARSING) $(VAR) $(COLLECT) $(AWKVM) $(AWKMEM) $(AWKAST) $(SYM)
 xml_awk_LDADD = @LEXLIB@
 
+BUILT_SOURCES = awkl.c awkp.c awkp.h
 check_PROGRAMS = 
 

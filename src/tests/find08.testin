@@ -1,5 +1,5 @@
 _PURPOSE_
-xml-find EXECNODE test with {@}, assumes "which echo" works.
+xml-find EXECNODE test with {@}
 _INPUT_
 <html><head>
 <title></title></head>
@@ -11,7 +11,7 @@ _INPUT_
 <h2>MESSAGE</h2>
 </noframes></html>
 _COMMAND_
-xml-find -execnode "`which echo`" '[' '{@}' ']'  ';'
+xml-find -execnode "echo" '[' '{@}' ']'  ';'
 _EXITCODE_
 0
 _OUTPUT_
