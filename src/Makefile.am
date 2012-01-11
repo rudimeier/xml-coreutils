@@ -54,9 +54,12 @@ STDCOMMON = $(COMMON) $(PARSER) $(FILELST) $(IO) $(STDOUT) $(MEM) $(ENTITIES) $(
 STDPARSING = $(STDPARSE) $(STDSEL) $(XPATH) $(XMATCH) $(XPRED) $(XATT) $(HASH) $(OBJSTACK) $(NHIST)
 LEAFPARSING = $(LFPARSE) $(STDSEL) $(XPATH) $(XMATCH) $(XPRED) $(XATT) $(LF) $(HASH) $(OBJSTACK) $(NHIST) 
 
-bin_PROGRAMS = xml-cat xml-printf xml-echo xml-less xml-strings xml-ls \
+bin_PROGRAMS = xml-cat xml-printf xml-echo xml-strings xml-ls \
 	xml-file xml-find xml-grep xml-fmt xml-wc xml-cut xml-head \
 	xml-unecho xml-sed xml-rm xml-cp xml-mv xml-fixtags xml-paste xml-awk
+if WITH_SLANG
+bin_PROGRAMS += xml-less
+endif
 
 xml_cat_SOURCES = xml-cat.c $(STDCOMMON) $(WRAP)
 
@@ -64,8 +67,10 @@ xml_printf_SOURCES = xml-printf.c $(STDCOMMON) $(STDPARSING) $(COLLECT) $(STRLST
 
 xml_echo_SOURCES = xml-echo.c $(COMMON) $(WRAP) $(IO) $(STDOUT) $(FORMAT) $(XPATH) $(MEM) $(PARSER) $(ECHOC) $(ENTITIES) $(HASH) $(COLLECT) $(VAR) $(CSTRING)
 
+if WITH_SLANG
 xml_less_SOURCES = xml-less.c $(COMMON) $(IO) $(MEM) $(BLOCKS) $(STDOUT) $(CURSOR) $(PARSER) $(LESSUI) $(ENTITIES) $(ATTLST) $(HASH) $(XPATH) $(CSTRING) $(TEMPF) $(STRLST)
-xml_less_LDADD = -lslang -lncurses
+xml_less_LDADD = -lslang -lm
+endif
 
 xml_strings_SOURCES = xml-strings.c $(STDCOMMON) $(STDPARSING)
 
@@ -102,5 +107,6 @@ xml_paste_SOURCES = xml-paste.c $(STDCOMMON) $(STDPARSING) $(COLLECT) $(TEMPF) $
 xml_awk_SOURCES = xml-awk.c $(STDCOMMON) $(STDPARSING) $(VAR) $(COLLECT) $(AWKVM) $(AWKMEM) $(AWKAST) $(SYM)
 xml_awk_LDADD = @LEXLIB@
 
+BUILT_SOURCES = awkl.c awkp.c awkp.h
 check_PROGRAMS = 
 

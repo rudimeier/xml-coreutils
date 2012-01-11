@@ -7,7 +7,7 @@ _INPUT_
 	<b c="x">def</b>
 </a>
 _COMMAND_
-xml-printf "%s before %s\n" "$TMP_PATH/input" ://b[2]@c ://b@c[1]
+cat >/dev/null; xml-printf "%s before %s\n" "$TMP_PATH/input" ://b[2]@c ://b@c[1]
 _EXITCODE_
 0
 _OUTPUT_

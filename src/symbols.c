@@ -112,9 +112,9 @@ bool_t grow_jumptable(jumptable_t *jt) {
 	  if( i != &jt->hash[c] ) {
 	    if( MARKEDP(i) ) {
 	      /* swap */
-	      memcpy(&temp_item, i, sizeof(jump_t));
+	      memcpy(temp_item, i, sizeof(jump_t));
 	      memcpy(i, &jt->hash[c], sizeof(jump_t));
-	      memcpy(&jt->hash[c], &temp_item, sizeof(jump_t));
+	      memcpy(&jt->hash[c], temp_item, sizeof(jump_t));
 	    } else {
 	      /* copy and clear */
 	      memcpy(i, &jt->hash[c], sizeof(jump_t));

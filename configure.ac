@@ -13,11 +13,7 @@ AM_PROG_LEX
 AC_PROG_YACC
 
 ## Checks for libraries.
-AC_CHECK_LIB([m],[log])
 AC_CHECK_LIB([expat],[XML_ParseBuffer],,[AC_MSG_ERROR([Missing libexpat])])
-# (these two go together in this order)
-AC_CHECK_LIB([ncurses],[initscr])
-AC_CHECK_LIB([slang],[SLsmg_init_smg],,[AC_MSG_ERROR([Missing libslang2])])
 
 ## Checks for header files.
 AC_HEADER_STDC
@@ -26,7 +22,14 @@ AC_CHECK_HEADERS([wchar.h wctype.h],,
 [
 	AC_MSG_WARN([No wide character headers, disabling full internationalization.])
 ])
-AC_CHECK_HEADERS([expat.h slang.h],,[AC_MSG_ERROR([Missing expat.h or slang.h])])
+AC_CHECK_HEADERS([expat.h],,[AC_MSG_ERROR([Missing expat.h])])
+
+## Check for slang
+AC_CHECK_LIB([slang],[SLsmg_init_smg],
+  AC_CHECK_HEADERS([slang.h],,[AC_MSG_WARN([Missing slang.h])]),
+  [AC_MSG_WARN([Missing libslang2])])
+AM_CONDITIONAL([WITH_SLANG],[test "$ac_cv_header_slang_h" = "yes"])
+
 
 ## Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

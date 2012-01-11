@@ -6,7 +6,7 @@ _INPUT_
    hello
 </a>
 _COMMAND_
-xml-find :/ -exec "`which cat`" '{-}' ';' -exec "`which echo`" ';'
+xml-find :/ -exec "cat" '{-}' ';' -exec "echo" ';'
 _EXITCODE_
 0
 _OUTPUT_
